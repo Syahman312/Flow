@@ -219,7 +219,7 @@ label.f>span{display:block;font-size:12.5px;color:var(--mute);margin-bottom:5px;
 <script>
 'use strict';
 /* ================================================================ basics */
-const APP_VERSION='2.1.1';
+const APP_VERSION='2.2.0';
 const $=(s,r=document)=>r.querySelector(s);
 const pad=n=>String(n).padStart(2,'0');
 const ymd=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
@@ -467,9 +467,22 @@ const CLOSE_TEMPLATE=[
   [3,'Consolidation','Unrealised profit & fair value adjustments'],[4,'Reporting','Consolidated TB, financial statements & variance analysis'],
   [4,'Reporting','Group management report & KPIs'],[5,'Review','Review, sign-off & file working papers']];
 const STARTER_HABITS=[['📖','Read 20 minutes',7,'#60a5fa'],['🏃','Exercise',4,'#4ade80'],['🧠','ACCA revision',6,'#a78bfa'],['💧','Drink 2L water',7,'#2dd4bf'],['🌙','Sleep by 11:30pm',7,'#fbbf24']];
+const KINDS={
+  ACCA:{label:'ACCA paper',icon:'🎓',exam:true,topicsPh:'Topic 1\nTopic 2',statuses:['Planned','Studying','Exam booked','Passed','Exempt']},
+  Exam:{label:'Exam / cert',icon:'📝',exam:true,statuses:['Planned','Studying','Exam booked','Passed'],ph:'e.g. CFA Level I, IELTS, Excel certification',topicsPh:'Topic 1\nTopic 2'},
+  Course:{label:'Course',icon:'💻',statuses:['Planned','Learning','Paused','Completed'],ph:'e.g. Power BI for finance',topicsPh:'Module 1\nModule 2'},
+  Skill:{label:'Skill',icon:'🛠️',statuses:['Planned','Learning','Paused','Completed'],ph:'e.g. Excel VBA, public speaking, Python',topicsPh:'Basics\nBuild a first project\nPractise weekly'},
+  Book:{label:'Book',icon:'📚',statuses:['Planned','Reading','Paused','Completed'],ph:'e.g. Atomic Habits',topicsPh:'Chapter 1\nChapter 2'}};
+const KIND_KEYS=Object.keys(KINDS);
+// subjects saved before v2.2 have no kind: ACCA codes stay ACCA, anything else counts as an exam
+const kindOf=p=>KINDS[p&&p.kind]?p.kind:(p&&ACCA.some(a=>a[0]===p.code)?'ACCA':'Exam');
+const isDoneSubj=p=>['Passed','Exempt','Completed'].includes(p.status);
+const subjIcon=p=>kindOf(p)==='ACCA'?'':esc(p.icon||KINDS[kindOf(p)].icon)+' ';
+const subjTopics=pid=>all('topics').filter(x=>x.paper===pid).sort((a,b)=>(a.order||0)-(b.order||0));
+const readiness=tp=>tp.length?tp.reduce((a,x)=>a+(+x.conf||0),0)/(tp.length*3):0;
 
 /* ================================================================ UI helpers */
-let UI={planDay:todayS(),openPaper:null,openHabit:null,closePer:null,sheet:null,diag:null,logs:false};
+let UI={planDay:todayS(),openPaper:null,studyKind:'All',showDone:false,openHabit:null,closePer:null,sheet:null,diag:null,logs:false};
 function ring(pct,size=72,sw=7,color='var(--acc)',label){const r=(size-sw)/2,c=2*Math.PI*r,o=c*(1-clamp(pct||0,0,1));
   return `<svg class="ring" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" role="img" aria-label="${Math.round((pct||0)*100)}% complete"><circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="var(--card2)" stroke-width="${sw}"/><circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="${color}" stroke-width="${sw}" stroke-linecap="round" stroke-dasharray="${c}" stroke-dashoffset="${o}" transform="rotate(-90 ${size/2} ${size/2})" style="transition:stroke-dashoffset .5s"/><text x="50%" y="50%" text-anchor="middle" dominant-baseline="central" font-size="${size/4.6}">${label??Math.round((pct||0)*100)+'%'}</text></svg>`}
 function toast(msg,ms=2400){const t=$('#toast');t.textContent=msg;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),ms)}
@@ -568,9 +581,9 @@ function vToday(){
   if(items.length){const p=defaultPeriod(),wd=wdToday(p),done=items.filter(i=>closeDone(p,i.id)).length;
     const dueNow=items.filter(i=>!closeDone(p,i.id)&&wdDate(p,i.wd)<=t);
     if(done<items.length)h+=`<section aria-labelledby="h-close"><h2 id="h-close">🧾 Month-end close</h2><div class="card row" style="border:1px solid var(--line);border-radius:var(--r)" data-a="tab" data-tab="close">${ring(done/items.length,52,6,'var(--close)')}<div class="grow"><div class="t-title">${perLabel(p)} close · ${wd?'WD'+wd+' today':'starts '+relDay(wdDate(p,1))}</div><div class="meta">${done}/${items.length} done${dueNow.length?` · <span class="tag ${dueNow.some(i=>wdDate(p,i.wd)<t)?'bad':'warn'}">${dueNow.length} due</span>`:''}</div></div><span class="muted">›</span></div></section>`}
-  const next=all('papers').filter(p=>p.exam&&p.exam>=t&&p.status!=='Passed').sort((a,b)=>a.exam.localeCompare(b.exam))[0];
+  const next=all('papers').filter(p=>p.exam&&p.exam>=t&&!isDoneSubj(p)).sort((a,b)=>a.exam.localeCompare(b.exam))[0];
   if(next){const days=dayDiff(next.exam,t),wk=studyMins(next.id,ymd(weekStart(new Date())));
-    h+=`<section aria-labelledby="h-study"><h2 id="h-study">📚 Study</h2><div class="card row" style="border:1px solid var(--line);border-radius:var(--r)" data-a="tab" data-tab="study"><div style="text-align:center;min-width:56px"><div style="font-size:26px;font-weight:750;color:var(--study)">${days}</div><div class="tiny muted">days</div></div><div class="grow"><div class="t-title">${esc(next.code)} exam · ${fmtDate(next.exam)}</div><div class="meta">${hrs(wk)} studied this week · ${hrs(studyMins(next.id))} of ${next.target||0}h total</div></div><span class="muted">›</span></div></section>`}
+    h+=`<section aria-labelledby="h-study"><h2 id="h-study">📚 Study</h2><div class="card row" style="border:1px solid var(--line);border-radius:var(--r)" data-a="tab" data-tab="study"><div style="text-align:center;min-width:56px"><div style="font-size:26px;font-weight:750;color:var(--study)">${days}</div><div class="tiny muted">days</div></div><div class="grow"><div class="t-title">${subjIcon(next)}${esc(next.code)} ${KINDS[kindOf(next)].exam?'exam':'due'} · ${fmtDate(next.exam)}</div><div class="meta">${hrs(wk)} studied this week · ${hrs(studyMins(next.id))}${next.target?` of ${next.target}h`:''} total</div></div><span class="muted">›</span></div></section>`}
 
   // Evening: plan tomorrow / Monday: weekly review
   const hr=new Date().getHours(),tm=ymd(addDays(new Date(),1));
@@ -587,13 +600,13 @@ function weeklyReview(){
 /* ---------- focus timer */
 function timerLeft(){const T=META.timer;if(!T)return 0;return T.paused!=null?T.paused:Math.max(0,T.start+T.dur*6e4-Date.now())}
 function timerCard(){
-  const T=META.timer;const papers=all('papers').filter(p=>p.status!=='Passed'&&p.status!=='Exempt');
-  if(!T)return `<div class="card"><div class="timer"><div class="grow"><div class="muted small">Pick a length and go. Focus sessions on an ACCA paper are logged to Study automatically.</div>
+  const T=META.timer;const papers=all('papers').filter(p=>!isDoneSubj(p));
+  if(!T)return `<div class="card"><div class="timer"><div class="grow"><div class="muted small">Pick a length and go. Focus sessions on a subject are logged to Study automatically.</div>
     <div class="seg" style="margin-top:10px" role="group" aria-label="Session length">${[25,45,60].map(m=>`<button data-a="startTimer" data-m="${m}">${m} min</button>`).join('')}</div>
-    ${papers.length?`<label class="f"><span>Studying</span><select id="timerPaper"><option value="">Not ACCA — just focus</option>${papers.map(p=>`<option value="${esc(p.id)}" ${META.lastTimerPaper===p.id?'selected':''}>${esc(p.code)} — ${esc(p.title)}</option>`).join('')}</select></label>`:''}</div></div></div>`;
+    ${papers.length?`<label class="f"><span>Studying</span><select id="timerPaper"><option value="">Nothing specific — just focus</option>${papers.map(p=>`<option value="${esc(p.id)}" ${META.lastTimerPaper===p.id?'selected':''}>${subjIcon(p)}${esc(p.code)}${p.title!==p.code?' — '+esc(p.title):''}</option>`).join('')}</select></label>`:''}</div></div></div>`;
   const left=timerLeft(),pct=1-left/(T.dur*6e4),p=T.paper&&paperOf(T.paper);
   return `<div class="card"><div class="timer"><div id="timerRing">${ring(pct,84,8,T.mode==='break'?'var(--habit)':'var(--study)',' ')}</div><div class="grow"><div class="tt" id="timerTxt" aria-live="off">${fmtLeft(left)}</div>
-    <div class="muted small">${T.mode==='break'?'Break — stretch, water, eyes off the screen':(p?esc(p.code)+' · '+esc(p.title):'Focus session')}</div>
+    <div class="muted small">${T.mode==='break'?'Break — stretch, water, eyes off the screen':(p?subjIcon(p)+esc(p.code)+(T.topic&&DB.topics[T.topic]?' · '+esc(DB.topics[T.topic].title):p.title!==p.code?' · '+esc(p.title):''):'Focus session')}</div>
     <div class="btns" style="margin-top:10px"><button class="btn sm" data-a="pauseTimer">${T.paused!=null?'Resume':'Pause'}</button><button class="btn sm bad" data-a="stopTimer">Stop</button></div></div></div></div>`}
 const fmtLeft=ms=>{const s=Math.ceil(ms/1e3);return `${pad(Math.floor(s/60))}:${pad(s%60)}`};
 function timerTick(){
@@ -608,7 +621,7 @@ function finishTimer(partialMins){
   const T=META.timer;if(!T)return;META.timer=null;document.title='Flow — Today, Plan, Study, Close & Habits';
   if(T.mode==='focus'){
     const mins=partialMins??T.dur;
-    if(T.paper&&mins>=1){const p=paperOf(T.paper);put('sessions',{id:uid(),title:`${p?p.code:'Study'} · ${mins} min`,paper:T.paper,topic:'',date:ymd(new Date(T.start)),mins,kind:'Focus'},{silent:true})}
+    if(T.paper&&mins>=1){const p=paperOf(T.paper);put('sessions',{id:uid(),title:`${p?p.code:'Study'} · ${mins} min`,paper:T.paper,topic:T.topic||'',date:ymd(new Date(T.start)),mins,kind:'Focus'},{silent:true})}
     if(partialMins==null){buzz([80,60,80]);confetti();notify('Focus session done 🎉',T.paper?`${mins} min logged to Study`:'Take a 5-minute break');
       META.timer={mode:'break',start:Date.now(),dur:5,paper:'',paused:null}}
     toast(T.paper?`✅ ${mins} min logged · +${Math.round(mins/2)} XP`:'✅ Focus session done');
@@ -641,33 +654,57 @@ function vPlan(){
 
 /* ================================================================ STUDY */
 function vStudy(){
-  const papers=all('papers').sort((a,b)=>(a.exam||'9').localeCompare(b.exam||'9')),t=todayS();
-  if(!papers.length)return `<section>${empty('🎓','Add your ACCA papers','Track exam countdowns, study hours and topic confidence for each paper.','<button class="btn pri" data-a="newPaper">Add a paper</button>')}</section>`;
-  const next=papers.filter(p=>p.exam&&p.exam>=t&&p.status!=='Passed')[0];
+  const t=todayS(),every=all('papers');
+  if(!every.length)return `<section>${empty('🎓','What are you learning?','Track ACCA papers, other exams, courses, skills and books: hours, weekly goals, deadlines and topic confidence.',KIND_KEYS.map(k=>`<button class="btn ${k==='ACCA'?'pri':''}" data-a="newPaper" data-kind="${k}">${KINDS[k].icon} ${esc(KINDS[k].label)}</button>`).join(''))}</section>`;
+  const kinds=[...new Set(every.map(kindOf))];
+  const f=kinds.length>1&&kinds.includes(UI.studyKind)?UI.studyKind:'All';
+  const subs=every.filter(p=>f==='All'||kindOf(p)===f).sort((a,b)=>(a.exam||'9').localeCompare(b.exam||'9')||(a.code||'').localeCompare(b.code||''));
+  const active=subs.filter(p=>!isDoneSubj(p)),finished=subs.filter(isDoneSubj),ids=new Set(subs.map(p=>p.id));
+  const ss=all('sessions').filter(s=>f==='All'||ids.has(s.paper));
+  const sm=(from,to,pid)=>ss.filter(s=>(!pid||s.paper===pid)&&(!from||s.date>=from)&&(!to||s.date<=to)).reduce((a,s)=>a+(+s.mins||0),0);
   let h='';
-  if(next){const topics=all('topics').filter(x=>x.paper===next.id),ready=topics.length?topics.reduce((a,x)=>a+(+x.conf||0),0)/(topics.length*3):0;
+  if(kinds.length>1)h+=`<div class="seg" style="margin-top:14px" role="group" aria-label="Show">${['All',...KIND_KEYS.filter(k=>kinds.includes(k))].map(k=>`<button data-a="studyKind" data-v="${k}" class="${k===f?'on':''}" aria-pressed="${k===f}">${k==='All'?'All':KINDS[k].icon+' '+esc(KINDS[k].label)}</button>`).join('')}</div>`;
+  // next deadline
+  const next=active.filter(p=>p.exam&&p.exam>=t)[0];
+  if(next){const K=KINDS[kindOf(next)],topics=subjTopics(next.id),ready=readiness(topics);
     const done=studyMins(next.id)/60,target=+next.target||0,days=dayDiff(next.exam,t),wks=Math.max(days/7,.5),need=Math.max(0,target-done)/wks;
-    h+=`<section aria-labelledby="h-next"><h2 id="h-next">Next exam</h2><div class="card"><div class="hero">${ring(ready,84,8,'var(--study)')}<div class="grow"><div class="big">${esc(next.code)} · ${days} day${days===1?'':'s'}</div><div class="muted small">${esc(next.title)} · ${fmtDate(next.exam)}</div>
-      <div class="small" style="margin-top:8px">${done.toFixed(1)}h of ${target}h${target?` · <b style="color:var(--study)">${need.toFixed(1)}h/week</b> to hit target`:''}</div><div class="bar"><i style="width:${target?Math.min(100,done/target*100):0}%"></i></div><div class="tiny muted" style="margin-top:6px">Ring = topic readiness (${topics.length} topics)</div></div></div>
+    const pct=topics.length?ready:(target?done/target:0);
+    h+=`<section aria-labelledby="h-next"><h2 id="h-next">${K.exam?'Next exam':'Next deadline'}</h2><div class="card"><div class="hero">${ring(pct,84,8,'var(--study)')}<div class="grow"><div class="big">${subjIcon(next)}${esc(next.code)} · ${days} day${days===1?'':'s'}</div><div class="muted small">${next.title!==next.code?esc(next.title)+' · ':''}${fmtDate(next.exam)}</div>
+      <div class="small" style="margin-top:8px">${done.toFixed(1)}h${target?` of ${target}h · <b style="color:var(--study)">${need.toFixed(1)}h/week</b> to hit target`:' logged'}</div>${target?`<div class="bar"><i style="width:${Math.min(100,done/target*100)}%"></i></div>`:''}<div class="tiny muted" style="margin-top:6px">${topics.length?`Ring = topic readiness (${topics.length} topics)`:target?'Ring = hours vs target':'Add topics or a target to track progress'}</div></div></div>
       <div class="btns" style="margin-top:12px"><button class="btn sm pri" data-a="studyNow" data-id="${esc(next.id)}">▶ Focus 25 min</button><button class="btn sm" data-a="logStudy" data-id="${esc(next.id)}">+ Log time</button><button class="btn sm" data-a="blockStudy" data-id="${esc(next.id)}">📅 Block time</button></div></div></section>`}
-  // week chart
-  const ws=weekStart(new Date()),mins=[...Array(7)].map((_,i)=>studyMins(null,ymd(addDays(ws,i)),ymd(addDays(ws,i))));
+  // focus next: weak / not-started topics, nearest deadline first
+  const weak=active.flatMap(p=>subjTopics(p.id).filter(x=>(+x.conf||0)<2).sort((a,b)=>(+b.conf||0)-(+a.conf||0)).map(x=>({x,p}))).slice(0,3);
+  if(weak.length)h+=`<section aria-labelledby="h-fn"><h2 id="h-fn">Focus next</h2><div class="list">${weak.map(({x,p})=>`<div class="row" style="cursor:default"><div class="grow"><div class="t-title small">${esc(x.title)}</div><div class="meta"><span class="tag ACCA">${subjIcon(p)}${esc(p.code)}</span><span>${+x.conf?'Weak':'Not started'}</span></div></div><button class="btn sm" data-a="studyNow" data-id="${esc(p.id)}" data-topic="${esc(x.id)}" aria-label="Focus 25 minutes on ${esc(x.title)}">▶ 25m</button></div>`).join('')}</div><p class="tiny muted">Topics you rated weak or haven't started yet. Rate them inside each subject.</p></section>`;
+  // week
+  const ws=weekStart(new Date()),wsS=ymd(ws),mins=[...Array(7)].map((_,i)=>sm(ymd(addDays(ws,i)),ymd(addDays(ws,i))));
   const max=Math.max(60,...mins),wk=mins.reduce((a,b)=>a+b,0);
-  const sDays=new Set(all('sessions').map(s=>s.date));let d=new Date();if(!sDays.has(ymd(d)))d=addDays(d,-1);let sk=0;while(sDays.has(ymd(d))){sk++;d=addDays(d,-1)}
-  h+=`<section aria-labelledby="h-wk"><h2 id="h-wk">This week</h2><div class="kpis" style="margin-bottom:10px"><div class="kpi"><b>${hrs(wk)}</b><span>studied</span></div><div class="kpi"><b>🔥 ${sk}</b><span>study streak</span></div><div class="kpi"><b>${hrs(studyMins())}</b><span>all time</span></div></div>
-    <div class="card"><svg class="chart" viewBox="0 0 350 130" role="img" aria-label="Study minutes per day this week: ${mins.map((m,i)=>DOW[(i+1)%7]+' '+m).join(', ')}">${mins.map((m,i)=>{const bh=Math.round(m/max*78),x=10+i*48;return `<rect x="${x}" y="${100-bh}" width="34" height="${Math.max(bh,2)}" rx="6" fill="${ymd(addDays(ws,i))===t?'var(--study)':'#3b3550'}"/><text x="${x+17}" y="120" text-anchor="middle" font-size="11" fill="var(--mute)">${DOW[(i+1)%7]}</text>${m?`<text x="${x+17}" y="${Math.max(12,94-bh)}" text-anchor="middle" font-size="10" fill="var(--mute)">${hrs(m)}</text>`:''}`}).join('')}</svg></div></section>`;
-  // papers
-  h+=`<section aria-labelledby="h-papers"><h2 id="h-papers">Papers<button class="act" data-a="newPaper">+ Add</button></h2>`;
-  papers.forEach(p=>{const tp=all('topics').filter(x=>x.paper===p.id).sort((a,b)=>(a.order||0)-(b.order||0));const ready=tp.length?tp.reduce((a,x)=>a+(+x.conf||0),0)/(tp.length*3):0;const hm=studyMins(p.id)/60;const open=UI.openPaper===p.id;
-    h+=`<div class="card"><div class="split" data-a="openPaper" data-id="${esc(p.id)}" style="cursor:pointer" role="button" aria-expanded="${open}"><div><h3>${esc(p.code)} <span class="muted" style="font-weight:500">${esc(p.title)}</span></h3><div class="meta"><span class="tag ${p.status==='Passed'?'good':p.status==='Exam booked'?'warn':''}">${esc(p.status||'Planned')}</span>${p.exam?`<span>${fmtDate(p.exam)}${p.exam>=t?' · '+dayDiff(p.exam,t)+'d':''}</span>`:''}${p.score?`<span>Score ${p.score}</span>`:''}</div></div><span class="muted">${open?'▾':'▸'}</span></div>
-      <div class="grid2" style="margin-top:10px"><div><div class="tiny muted">Hours ${hm.toFixed(1)} / ${p.target||0}</div><div class="bar"><i style="width:${p.target?Math.min(100,hm/p.target*100):0}%;background:var(--study)"></i></div></div><div><div class="tiny muted">Readiness ${Math.round(ready*100)}%</div><div class="bar"><i style="width:${ready*100}%;background:var(--habit)"></i></div></div></div>`;
-    if(open){h+=`<div style="margin-top:12px">${tp.length?`<div class="list">${tp.map(x=>`<div class="row" style="cursor:default"><div class="grow small">${esc(x.title)}</div><div class="conf" role="group" aria-label="Confidence for ${esc(x.title)}">${['–','1','2','3'].map((l,i)=>`<button class="c${i} ${(+x.conf||0)===i?'on':''}" data-a="conf" data-id="${esc(x.id)}" data-v="${i}" aria-label="${['Not started','Weak','OK','Strong'][i]}" aria-pressed="${(+x.conf||0)===i}">${l}</button>`).join('')}</div><button class="icon-btn" style="width:36px;height:36px" data-a="delTopic" data-id="${esc(x.id)}" aria-label="Delete topic ${esc(x.title)}">×</button></div>`).join('')}</div><p class="tiny muted">– not started · 1 weak · 2 OK · 3 strong</p>`:'<p class="small muted">Add syllabus areas to track readiness.</p>'}
-      <div class="btns"><button class="btn sm" data-a="addTopics" data-id="${esc(p.id)}">+ Topics</button><button class="btn sm" data-a="logStudy" data-id="${esc(p.id)}">+ Log time</button><button class="btn sm" data-a="editPaper" data-id="${esc(p.id)}">Edit</button></div></div>`}
-    h+='</div>'});
+  const sDays=new Set(ss.map(s=>s.date));let d=new Date();if(!sDays.has(ymd(d)))d=addDays(d,-1);let sk=0;while(sDays.has(ymd(d))){sk++;d=addDays(d,-1)}
+  const goals=active.filter(p=>+p.weekly>0);
+  h+=`<section aria-labelledby="h-wk"><h2 id="h-wk">This week</h2><div class="kpis" style="margin-bottom:10px"><div class="kpi"><b>${hrs(wk)}</b><span>studied</span></div><div class="kpi"><b>🔥 ${sk}</b><span>study streak</span></div><div class="kpi"><b>${hrs(sm())}</b><span>all time</span></div></div>
+    <div class="card"><svg class="chart" viewBox="0 0 350 130" role="img" aria-label="Study minutes per day this week: ${mins.map((m,i)=>DOW[(i+1)%7]+' '+m).join(', ')}">${mins.map((m,i)=>{const bh=Math.round(m/max*78),x=10+i*48;return `<rect x="${x}" y="${100-bh}" width="34" height="${Math.max(bh,2)}" rx="6" fill="${ymd(addDays(ws,i))===t?'var(--study)':'#3b3550'}"/><text x="${x+17}" y="120" text-anchor="middle" font-size="11" fill="var(--mute)">${DOW[(i+1)%7]}</text>${m?`<text x="${x+17}" y="${Math.max(12,94-bh)}" text-anchor="middle" font-size="10" fill="var(--mute)">${hrs(m)}</text>`:''}`}).join('')}</svg></div>`;
+  if(goals.length)h+=`<div class="card" style="margin-top:10px"><h3>Weekly goals</h3>${goals.map(p=>{const w=sm(wsS,null,p.id)/60;return `<div style="margin-top:10px"><div class="split small"><span>${subjIcon(p)}${esc(p.code)}</span><span class="muted">${w.toFixed(1)} / ${p.weekly}h${w>=p.weekly?' ✅':''}</span></div><div class="bar"><i style="width:${Math.min(100,w/p.weekly*100)}%;background:var(--study)"></i></div></div>`}).join('')}</div>`;
   h+='</section>';
-  const rec=all('sessions').sort((a,b)=>(b.date+b.updated).localeCompare(a.date+a.updated)).slice(0,8);
-  if(rec.length)h+=`<section aria-labelledby="h-log"><h2 id="h-log">Recent sessions</h2><div class="list">${rec.map(s=>{const p=paperOf(s.paper);return `<div class="row" style="cursor:default"><div class="grow"><div class="t-title small">${esc(p?p.code:'Study')} · ${hrs(s.mins)}</div><div class="meta">${esc(relDay(s.date))} · ${esc(s.kind||'Manual')}</div></div><button class="icon-btn" data-a="delSession" data-id="${esc(s.id)}" aria-label="Delete session">×</button></div>`}).join('')}</div></section>`;
+  // subjects
+  h+=`<section aria-labelledby="h-papers"><h2 id="h-papers">Subjects<button class="act" data-a="newPaper" data-kind="${f==='All'?'':f}">+ Add</button></h2>`;
+  h+=active.length?active.map(subjCard).join(''):'<p class="small muted">Everything here is completed 🎉 Add something new to learn.</p>';
+  h+='</section>';
+  if(finished.length){h+=`<section aria-labelledby="h-done"><h2 id="h-done">Completed · ${finished.length}<button class="act" data-a="showDone" aria-expanded="${!!UI.showDone}">${UI.showDone?'Hide':'Show'}</button></h2>`;
+    if(UI.showDone)h+=finished.map(subjCard).join('');h+='</section>'}
+  // recent
+  const rec=ss.slice().sort((a,b)=>(b.date+b.updated).localeCompare(a.date+a.updated)).slice(0,8);
+  if(rec.length)h+=`<section aria-labelledby="h-log"><h2 id="h-log">Recent sessions</h2><div class="list">${rec.map(s=>{const p=paperOf(s.paper),tp=s.topic&&DB.topics[s.topic]&&!DB.topics[s.topic].deleted?DB.topics[s.topic]:null;return `<div class="row" style="cursor:default"><div class="grow"><div class="t-title small">${p?subjIcon(p)+esc(p.code):'Study'} · ${hrs(s.mins)}</div><div class="meta">${esc(relDay(s.date))} · ${esc(s.kind||'Manual')}${tp?' · '+esc(tp.title):''}</div>${s.note?`<div class="tiny muted" style="margin-top:2px">${esc(s.note)}</div>`:''}</div><button class="icon-btn" data-a="delSession" data-id="${esc(s.id)}" aria-label="Delete session">×</button></div>`}).join('')}</div></section>`;
   return h}
+function subjCard(p){
+  const k=kindOf(p),K=KINDS[k],t=todayS(),tp=subjTopics(p.id),ready=readiness(tp),hm=studyMins(p.id)/60,open=UI.openPaper===p.id;
+  const cells=[];
+  cells.push(p.target?`<div><div class="tiny muted">Hours ${hm.toFixed(1)} / ${p.target}</div><div class="bar"><i style="width:${Math.min(100,hm/p.target*100)}%;background:var(--study)"></i></div></div>`:`<div><div class="tiny muted">${hm.toFixed(1)}h logged</div></div>`);
+  if(+p.weekly>0){const w=studyMins(p.id,ymd(weekStart(new Date())))/60;cells.push(`<div><div class="tiny muted">This week ${w.toFixed(1)} / ${p.weekly}h</div><div class="bar"><i style="width:${Math.min(100,w/p.weekly*100)}%;background:var(--plan)"></i></div></div>`)}
+  if(tp.length)cells.push(`<div><div class="tiny muted">Readiness ${Math.round(ready*100)}%</div><div class="bar"><i style="width:${ready*100}%;background:var(--habit)"></i></div></div>`);
+  let h=`<div class="card"><div class="split" data-a="openPaper" data-id="${esc(p.id)}" style="cursor:pointer" role="button" aria-expanded="${open}"><div><h3>${subjIcon(p)}${esc(p.code)}${p.title&&p.title!==p.code?` <span class="muted" style="font-weight:500">${esc(p.title)}</span>`:''}</h3><div class="meta">${k!=='ACCA'?`<span class="tag">${esc(K.label)}</span>`:''}<span class="tag ${isDoneSubj(p)?'good':p.status==='Exam booked'?'warn':''}">${esc(p.status||'Planned')}</span>${p.exam?`<span>${fmtDate(p.exam)}${p.exam>=t?' · '+dayDiff(p.exam,t)+'d':''}</span>`:''}${p.score!=null&&p.score!==''?`<span>Score ${esc(p.score)}</span>`:''}</div></div><span class="muted">${open?'▾':'▸'}</span></div>
+    <div class="grid2" style="margin-top:10px">${cells.join('')}</div>`;
+  if(open){h+=`<div style="margin-top:12px">${tp.length?`<div class="list">${tp.map(x=>`<div class="row" style="cursor:default"><div class="grow small">${esc(x.title)}</div><div class="conf" role="group" aria-label="Confidence for ${esc(x.title)}">${['–','1','2','3'].map((l,i)=>`<button class="c${i} ${(+x.conf||0)===i?'on':''}" data-a="conf" data-id="${esc(x.id)}" data-v="${i}" aria-label="${['Not started','Weak','OK','Strong'][i]}" aria-pressed="${(+x.conf||0)===i}">${l}</button>`).join('')}</div><button class="icon-btn" style="width:36px;height:36px" data-a="delTopic" data-id="${esc(x.id)}" aria-label="Delete topic ${esc(x.title)}">×</button></div>`).join('')}</div><p class="tiny muted">– not started · 1 weak · 2 OK · 3 strong</p>`:`<p class="small muted">${K.exam?'Add syllabus areas to track readiness.':'Add topics, chapters or milestones to track progress.'}</p>`}
+    <div class="btns"><button class="btn sm pri" data-a="studyNow" data-id="${esc(p.id)}">▶ Focus</button><button class="btn sm" data-a="logStudy" data-id="${esc(p.id)}">+ Log time</button><button class="btn sm" data-a="addTopics" data-id="${esc(p.id)}">+ Topics</button><button class="btn sm" data-a="blockStudy" data-id="${esc(p.id)}">📅 Block</button><button class="btn sm" data-a="editPaper" data-id="${esc(p.id)}">Edit</button></div></div>`}
+  return h+'</div>'}
 
 /* ================================================================ CLOSE */
 function vClose(){
@@ -735,7 +772,7 @@ const val=id=>{const el=$('#'+id);return el?el.value.trim():''};
 
 function taskSheet(t){
   const isNew=!t.id;t=Object.assign({title:'',date:todayS(),time:'',dur:30,area:'Work',prio:'Medium',repeat:'none',paper:'',cal:null,top:false,notes:''},t);
-  const papers=all('papers');const cal=t.cal??(META.prefs.calDefault&&connected());
+  const papers=all('papers').filter(p=>!isDoneSubj(p)||p.id===t.paper);const cal=t.cal??(META.prefs.calDefault&&connected());
   UI.sheet={type:'task',id:t.id};
   openSheet(`<h2 class="st" id="sheetTitle">${isNew?'New task':'Edit task'}</h2>
   <label class="f"><span>Task</span><input id="f_title" value="${esc(t.title)}" maxlength="200" autofocus placeholder="What needs doing?"></label>
@@ -743,7 +780,7 @@ function taskSheet(t){
   <div class="grid2"><label class="f"><span>Duration</span><select id="f_dur">${[15,30,45,60,90,120,180].map(m=>`<option value="${m}" ${+t.dur===m?'selected':''}>${hrs(m)}</option>`).join('')}</select></label>
   <label class="f"><span>Repeat</span><select id="f_rep">${['none','daily','weekdays','weekly','monthly'].map(r=>`<option ${t.repeat===r?'selected':''}>${r}</option>`).join('')}</select></label></div>
   <label class="f"><span>Area</span>${segBtns('area',['Work','ACCA','Personal'],t.area)}</label>
-  ${papers.length?`<label class="f"><span>ACCA paper</span><select id="f_paper"><option value="">—</option>${papers.map(p=>`<option value="${esc(p.id)}" ${t.paper===p.id?'selected':''}>${esc(p.code)} — ${esc(p.title)}</option>`).join('')}</select></label>`:''}
+  ${papers.length?`<label class="f"><span>Study subject</span><select id="f_paper"><option value="">—</option>${papers.map(p=>`<option value="${esc(p.id)}" ${t.paper===p.id?'selected':''}>${subjIcon(p)}${esc(p.code)}${p.title!==p.code?' — '+esc(p.title):''}</option>`).join('')}</select></label>`:''}
   <label class="f"><span>Priority</span>${segBtns('prio',['High','Medium','Low'],t.prio)}</label>
   <div class="switch" style="margin-top:8px"><span>⭐ Top 3 focus</span><input type="checkbox" id="f_top" ${t.top?'checked':''} aria-label="Top 3 focus"></div>
   <div class="switch"><span>📅 Put on Google Calendar${connected()?'':' <span class="tiny muted">(connect first)</span>'}</span><input type="checkbox" id="f_cal" ${cal?'checked':''} aria-label="Put on Google Calendar"></div>
@@ -778,33 +815,51 @@ function parseQuick(s,baseDate){
   if(!area)area=/\b(acca|sbr|sbl|afm|apm|atx|aaa|revision|mock|syllabus|kaplan|bpp)\b/i.test(s)?'ACCA':'Work';
   return{title:t.replace(/\s+/g,' ').trim(),date:date||(baseDate??ymd(now)),time,area,prio}}
 
-/* ---------- paper / study sheets */
-function paperSheet(p){const isNew=!p;p=Object.assign({code:'',title:'',exam:'',target:150,status:'Studying',score:''},p||{});
-  openSheet(`<h2 class="st" id="sheetTitle">${isNew?'Add ACCA paper':'Edit '+esc(p.code)}</h2>
-  ${isNew?`<label class="f"><span>Paper</span><select id="p_pick">${ACCA.map(([c,n])=>`<option value="${c}">${c} — ${n}</option>`).join('')}<option value="_">Other…</option></select></label>`:''}
-  <div class="grid2"><label class="f"><span>Code</span><input id="p_code" value="${esc(p.code)}" maxlength="12" placeholder="${isNew?'auto':''}"></label><label class="f"><span>Target hours</span><input id="p_target" type="number" inputmode="numeric" min="0" max="2000" value="${esc(p.target)}"></label></div>
-  <label class="f"><span>Name</span><input id="p_title" value="${esc(p.title)}" maxlength="80" placeholder="${isNew?'auto from paper':''}"></label>
-  <label class="f"><span>Exam date</span><input id="p_exam" type="date" value="${esc(p.exam)}"></label>
-  <p class="tiny muted">ACCA sittings are in March, June, September and December. Exam day is shown in your ACCA portal.</p>
-  <label class="f"><span>Status</span>${segBtns('pstatus',['Planned','Studying','Exam booked','Passed','Exempt'],p.status)}</label>
-  <label class="f"><span>Score (after results)</span><input id="p_score" type="number" inputmode="numeric" min="0" max="100" value="${esc(p.score??'')}"></label>
-  <div class="foot">${isNew?'':`<button class="btn bad" data-a="delPaper" data-id="${esc(p.id)}">Delete</button>`}<button class="btn pri" data-a="savePaper" data-id="${esc(p.id||'')}">Save</button></div>`)}
+/* ---------- subject / study sheets */
+function paperSheet(p,kind){const isNew=!p||!p.id;p=Object.assign({id:'',code:'',title:'',exam:'',target:'',weekly:'',status:'',score:'',icon:''},p||{});
+  const k=KINDS[p.kind]?p.kind:isNew?(KINDS[kind]?kind:'ACCA'):kindOf(p),K=KINDS[k];
+  if(!K.statuses.includes(p.status))p.status=K.statuses[1];
+  if(isNew&&p.target===''&&k==='ACCA')p.target=150;
+  const num=(id,v,ph,max)=>`<input id="${id}" type="number" inputmode="decimal" min="0" max="${max}" step="any" value="${esc(v??'')}" placeholder="${ph}">`;
+  openSheet(`<h2 class="st" id="sheetTitle">${isNew?'Add something to learn':'Edit '+esc(p.code)}</h2>
+  <label class="f"><span>Type</span><div class="seg" role="radiogroup" aria-label="Type">${KIND_KEYS.map(x=>`<button type="button" role="radio" data-a="skind" data-v="${x}" data-id="${esc(p.id)}" class="${x===k?'on':''}" aria-checked="${x===k}">${KINDS[x].icon} ${esc(KINDS[x].label)}</button>`).join('')}</div></label>
+  <input type="hidden" id="p_kind" value="${k}">
+  ${k==='ACCA'?`${isNew?`<label class="f"><span>Paper</span><select id="p_pick">${ACCA.map(([c,n])=>`<option value="${c}">${c} — ${n}</option>`).join('')}<option value="_">Other…</option></select></label>`:''}
+  <div class="grid2"><label class="f"><span>Code</span><input id="p_code" value="${esc(p.code)}" maxlength="12" placeholder="${isNew?'auto':''}"></label><label class="f"><span>Target hours</span>${num('p_target',p.target,'',2000)}</label></div>
+  <label class="f"><span>Name</span><input id="p_title" value="${esc(p.title)}" maxlength="80" placeholder="${isNew?'auto from paper':''}"></label>`
+  :`<div class="grid2" style="grid-template-columns:80px 1fr"><label class="f"><span>Icon</span><input id="p_icon" value="${esc(p.icon||K.icon)}" maxlength="4" style="text-align:center;font-size:22px"></label><label class="f"><span>Name</span><input id="p_title" value="${esc(p.title)}" maxlength="80" autofocus placeholder="${esc(K.ph)}"></label></div>
+  <div class="grid2"><label class="f"><span>Short name</span><input id="p_code" value="${esc(p.code!==p.title?p.code:'')}" maxlength="16" placeholder="optional"></label><label class="f"><span>Target hours</span>${num('p_target',p.target,'optional',5000)}</label></div>`}
+  <div class="grid2"><label class="f"><span>Weekly goal (hours)</span>${num('p_weekly',p.weekly,'optional',100)}</label><label class="f"><span>${K.exam?'Exam date':'Target date'}</span><input id="p_exam" type="date" value="${esc(p.exam)}"></label></div>
+  ${k==='ACCA'?'<p class="tiny muted">ACCA sittings are in March, June, September and December. Exam day is shown in your ACCA portal.</p>':''}
+  <label class="f"><span>Status</span>${segBtns('pstatus',K.statuses,p.status)}</label>
+  ${K.exam?`<label class="f"><span>Score (after results)</span><input id="p_score" type="number" inputmode="numeric" min="0" max="100" value="${esc(p.score??'')}"></label>`:''}
+  <div class="foot">${isNew?'':`<button class="btn bad" data-a="delPaper" data-id="${esc(p.id)}">Delete</button>`}<button class="btn pri" data-a="savePaper" data-id="${esc(p.id)}">Save</button></div>`)}
+function sheetSubjectDraft(id,kind){return{id:id||'',kind,code:val('p_code'),title:val('p_title'),icon:val('p_icon'),exam:val('p_exam'),target:val('p_target'),weekly:val('p_weekly'),status:segVal('pstatus'),score:val('p_score')}}
 function savePaper(id){
-  const p=id?DB.papers[id]:{id:uid()};const pick=$('#p_pick')?$('#p_pick').value:'';
-  const preset=ACCA.find(a=>a[0]===pick);
-  p.code=(val('p_code')||(preset?preset[0]:'')).toUpperCase();p.title=val('p_title')||(preset?preset[1]:p.code);
-  if(!p.code){toast('Add a paper code');return}
-  p.exam=val('p_exam');p.target=+val('p_target')||0;p.status=segVal('pstatus')||'Studying';p.score=val('p_score')===''?null:+val('p_score');
+  const p=id&&DB.papers[id]?DB.papers[id]:{id:uid()},k=KINDS[val('p_kind')]?val('p_kind'):'ACCA',K=KINDS[k];
+  const title=val('p_title'),code=val('p_code');
+  if(k==='ACCA'){const pick=$('#p_pick')?$('#p_pick').value:'',preset=ACCA.find(a=>a[0]===pick);
+    p.code=(code||(preset?preset[0]:'')).toUpperCase();p.title=title||(preset?preset[1]:p.code);
+    if(!p.code){toast('Add a paper code');return}p.icon=''}
+  else{if(!title){toast('Give it a name');$('#p_title').focus();return}
+    p.title=title;p.code=code||title;p.icon=val('p_icon')||K.icon}
+  p.kind=k;p.exam=val('p_exam');p.target=+val('p_target')||0;p.weekly=+val('p_weekly')||0;p.status=segVal('pstatus')||K.statuses[1];
+  p.score=K.exam&&val('p_score')!==''?+val('p_score'):null;
   closeSheet();UI.openPaper=p.id;put('papers',p);toast('Saved')}
-function logSheet(pid){const papers=all('papers');
+const topicOpts=(pid,sel)=>`<option value="">General / no specific topic</option>`+subjTopics(pid).map(x=>`<option value="${esc(x.id)}" ${x.id===sel?'selected':''}>${esc(x.title)}</option>`).join('');
+function logTopics(){const s=$('#l_topic');if(s)s.innerHTML=topicOpts(val('l_paper'))}
+function logSheet(pid){let papers=all('papers').filter(p=>!isDoneSubj(p)||p.id===pid);if(!papers.length)papers=all('papers');
+  const sel=papers.some(p=>p.id===pid)?pid:papers[0].id;
   openSheet(`<h2 class="st" id="sheetTitle">Log study time</h2>
-  <label class="f"><span>Paper</span><select id="l_paper">${papers.map(p=>`<option value="${esc(p.id)}" ${p.id===pid?'selected':''}>${esc(p.code)} — ${esc(p.title)}</option>`).join('')}</select></label>
+  <label class="f"><span>Subject</span><select id="l_paper" onchange="logTopics()">${papers.map(p=>`<option value="${esc(p.id)}" ${p.id===sel?'selected':''}>${subjIcon(p)}${esc(p.code)}${p.title!==p.code?' — '+esc(p.title):''}</option>`).join('')}</select></label>
+  <label class="f"><span>Topic</span><select id="l_topic">${topicOpts(sel)}</select></label>
   <div class="grid2"><label class="f"><span>Date</span><input id="l_date" type="date" value="${todayS()}" max="${todayS()}"></label><label class="f"><span>Minutes</span><input id="l_mins" type="number" inputmode="numeric" min="1" max="720" value="60"></label></div>
   <div class="seg" style="margin-top:10px">${[30,60,90,120,180].map(m=>`<button type="button" onclick="document.getElementById('l_mins').value=${m}">${hrs(m)}</button>`).join('')}</div>
+  <label class="f"><span>What did you cover? (optional)</span><input id="l_note" maxlength="200" placeholder="e.g. Past paper Q3, chapter 4, built a pivot table"></label>
   <div class="foot"><button class="btn pri" data-a="saveLog">Save</button></div>`)}
-function topicsSheet(pid){const p=paperOf(pid);
-  openSheet(`<h2 class="st" id="sheetTitle">Add topics · ${esc(p.code)}</h2><p class="muted small">One topic per line — e.g. syllabus sections from your study text.</p>
-  <label class="f"><span>Topics</span><textarea id="t_lines" rows="8" autofocus placeholder="${p.code==='SBR'?'Group accounting\nIFRS 9 Financial instruments\nIFRS 15 Revenue\nIFRS 16 Leases\nEthics':'Topic 1\nTopic 2'}"></textarea></label>
+function topicsSheet(pid){const p=paperOf(pid),K=KINDS[kindOf(p)];
+  openSheet(`<h2 class="st" id="sheetTitle">Add topics · ${esc(p.code)}</h2><p class="muted small">One per line — ${K.exam?'syllabus sections from your study text':'topics, chapters or milestones'}.</p>
+  <label class="f"><span>Topics</span><textarea id="t_lines" rows="8" autofocus placeholder="${p.code==='SBR'?'Group accounting\nIFRS 9 Financial instruments\nIFRS 15 Revenue\nIFRS 16 Leases\nEthics':esc(K.topicsPh)}"></textarea></label>
   <div class="foot"><button class="btn pri" data-a="saveTopics" data-id="${esc(pid)}">Add</button></div>`)}
 
 /* ---------- close sheets */
@@ -905,7 +960,7 @@ async function restoreData(obj,source){
 const A={
   tab:d=>{META.tab=d.tab;persist();render();scrollTo(0,0);$('#view').focus({preventScroll:true})},
   settings:()=>settingsSheet(),closeSheet,
-  fab:()=>{const tb=META.tab;if(tb==='study')all('papers').length?logSheet(all('papers')[0].id):paperSheet();else if(tb==='close')closeItemSheet();else if(tb==='habits')habitSheet();else taskSheet({date:tb==='plan'?UI.planDay:todayS()})},
+  fab:()=>{const tb=META.tab;if(tb==='study')all('papers').length?logSheet():paperSheet();else if(tb==='close')closeItemSheet();else if(tb==='habits')habitSheet();else taskSheet({date:tb==='plan'?UI.planDay:todayS()})},
   newTask:d=>taskSheet({date:d.date}),editTask:d=>taskSheet(Object.assign({},DB.tasks[d.id])),
   saveTask:d=>saveTask(d.id),delTask:d=>{if(confirm('Delete this task?')){closeSheet();remove('tasks',d.id);toast('Deleted')}},
   toggleTask:(d,el)=>toggleTask(d.id,el),
@@ -914,17 +969,17 @@ const A={
   planDay:d=>{UI.planDay=d.date;if(META.tab!=='plan'){META.tab='plan';persist()}render()},
   week:d=>{UI.planDay=ymd(addDays(pd(UI.planDay),+d.n));render()},
   rollOver:()=>{const t=todayS();all('tasks').filter(x=>!x.done&&x.date&&x.date<t).forEach(x=>{x.date=t;put('tasks',x,{silent:true})});render();toast('Moved to today')},
-  startTimer:d=>{const sel=$('#timerPaper');const paper=sel?sel.value:'';META.lastTimerPaper=paper;META.timer={mode:'focus',start:Date.now(),dur:+d.m,paper,paused:null};persist();buzz();render();toast(`Focus ${d.m} min — you've got this`)},
+  startTimer:d=>{const sel=$('#timerPaper');const paper=sel?sel.value:'';META.lastTimerPaper=paper;META.timer={mode:'focus',start:Date.now(),dur:+d.m,paper,topic:'',paused:null};persist();buzz();render();toast(`Focus ${d.m} min — you've got this`)},
   pauseTimer:()=>{const T=META.timer;if(!T)return;if(T.paused!=null){T.start=Date.now()-(T.dur*6e4-T.paused);T.paused=null}else T.paused=timerLeft();persist();render()},
   stopTimer:()=>{const T=META.timer;if(!T)return;const done=Math.floor((T.dur*6e4-timerLeft())/6e4);
     if(T.mode==='focus'&&T.paper&&done>=5&&confirm(`Log the ${done} minutes you did?`))finishTimer(done);else{META.timer=null;document.title='Flow';persist();render()}},
-  studyNow:d=>{META.tab='today';META.timer={mode:'focus',start:Date.now(),dur:25,paper:d.id,paused:null};META.lastTimerPaper=d.id;persist();render();scrollTo(0,0)},
+  studyNow:d=>{closeSheet();META.tab='today';META.timer={mode:'focus',start:Date.now(),dur:25,paper:d.id,topic:d.topic||'',paused:null};META.lastTimerPaper=d.id;persist();render();scrollTo(0,0)},
   logStudy:d=>logSheet(d.id),
-  saveLog:()=>{const pid=val('l_paper'),m=+val('l_mins');if(!m||m<1){toast('Enter minutes');return}const p=paperOf(pid);closeSheet();put('sessions',{id:uid(),title:`${p?p.code:'Study'} · ${m} min`,paper:pid,topic:'',date:val('l_date')||todayS(),mins:m,kind:'Manual'});toast(`Logged ${hrs(m)} · +${Math.round(m/2)} XP`)},
-  blockStudy:d=>{const p=paperOf(d.id);taskSheet({title:`Study ${p.code}`,area:'ACCA',paper:d.id,date:ymd(addDays(new Date(),1)),time:'20:30',dur:90,cal:connected()})},
+  saveLog:()=>{const pid=val('l_paper'),m=+val('l_mins'),topic=val('l_topic'),note=val('l_note');if(!m||m<1){toast('Enter minutes');return}const p=paperOf(pid);closeSheet();put('sessions',{id:uid(),title:`${p?p.code:'Study'} · ${m} min`,paper:pid,topic,note,date:val('l_date')||todayS(),mins:m,kind:'Manual'});toast(`Logged ${hrs(m)} · +${Math.round(m/2)} XP`)},
+  blockStudy:d=>{const p=paperOf(d.id);taskSheet({title:`${kindOf(p)==='Book'?'Read':'Study'} ${p.code}`,area:kindOf(p)==='ACCA'?'ACCA':'Personal',paper:d.id,date:ymd(addDays(new Date(),1)),time:'20:30',dur:90,cal:connected()})},
   delSession:d=>{if(confirm('Delete this study session?'))remove('sessions',d.id)},
-  newPaper:()=>paperSheet(),editPaper:d=>paperSheet(Object.assign({},DB.papers[d.id])),savePaper:d=>savePaper(d.id),
-  delPaper:d=>{if(confirm('Delete this paper and its topics? Study sessions are kept.')){closeSheet();all('topics').filter(t=>t.paper===d.id).forEach(t=>remove('topics',t.id,{silent:true}));remove('papers',d.id)}},
+  newPaper:d=>paperSheet(null,d.kind),skind:d=>{const dr=sheetSubjectDraft(d.id,d.v);if(!d.id&&val('p_kind')==='ACCA'&&d.v!=='ACCA'&&dr.target==='150')dr.target='';paperSheet(dr)},studyKind:d=>{UI.studyKind=d.v;render()},showDone:()=>{UI.showDone=!UI.showDone;render()},editPaper:d=>paperSheet(Object.assign({},DB.papers[d.id])),savePaper:d=>savePaper(d.id),
+  delPaper:d=>{if(confirm('Delete this subject and its topics? Study sessions are kept.')){closeSheet();all('topics').filter(t=>t.paper===d.id).forEach(t=>remove('topics',t.id,{silent:true}));remove('papers',d.id)}},
   openPaper:d=>{UI.openPaper=UI.openPaper===d.id?null:d.id;render()},
   addTopics:d=>topicsSheet(d.id),
   saveTopics:d=>{const lines=$('#t_lines').value.split('\n').map(s=>s.trim()).filter(Boolean).slice(0,80);const base=all('topics').filter(t=>t.paper===d.id).length;closeSheet();lines.forEach((l,i)=>put('topics',{id:uid(),title:l.slice(0,150),paper:d.id,conf:0,order:base+i},{silent:true}));render();toast(`${lines.length} topic(s) added`)},
