@@ -219,7 +219,7 @@ label.f>span{display:block;font-size:12.5px;color:var(--mute);margin-bottom:5px;
 <script>
 'use strict';
 /* ================================================================ basics */
-const APP_VERSION='2.2.0';
+const APP_VERSION='2.2.1';
 const $=(s,r=document)=>r.querySelector(s);
 const pad=n=>String(n).padStart(2,'0');
 const ymd=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
@@ -320,7 +320,10 @@ async function api(action,payload={},timeout=90000){
     return j;
   }catch(e){
     if(e.name==='AbortError')throw new Error('Timed out — Google took too long to answer');
-    if(e instanceof TypeError)throw new Error(navigator.onLine?'Could not reach the server — check the Web App URL':'You are offline');
+    if(e instanceof TypeError){if(!navigator.onLine)throw new Error('You are offline');
+      // network-level failure: a dropped connection, the device just waking up, or Google answering with an error page.
+      // If sync has worked before, the URL is fine, so say so and mark it as transient (the sync loop retries).
+      const err=new Error(META.lastSync?'Could not reach Google — connection dropped or Google was busy':'Could not reach the server — check the Web App URL');err.transient=!!META.lastSync;throw err}
     throw e;
   }finally{clearTimeout(tm)}
 }
@@ -370,7 +373,9 @@ async function sync(opt={}){
     if(unsent.length){try{await api('log',{entries:unsent.slice(-50)});unsent.forEach(l=>l.sent=true);LS.set('flow2.log',LOGS)}catch(e){}}
   }catch(e){
     META.lastErr=e.message;META.backoff=Math.min((META.backoff||0)+1,BACKOFF.length-1);
-    log('error','sync',e.message);
+    // one-off network blips are retried automatically (5s, 15s, 1m…); only record an error if it keeps failing
+    if(e.transient&&META.backoff<3)log('info','sync',e.message+' — retrying');
+    else log('error','sync',e.transient?e.message+' (still failing after retries)':e.message);
     scheduleSync(BACKOFF[META.backoff]);
   }finally{
     syncing=false;persist();setStatus();render(true);
@@ -417,8 +422,8 @@ function setStatus(state){
 }
 setInterval(()=>{if(document.visibilityState==='visible')sync()},12e4);
 setInterval(()=>setStatus(),3e4);
-window.addEventListener('online',()=>sync());window.addEventListener('offline',()=>setStatus());
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){sync();render(true)}else persist(true)});
+window.addEventListener('online',()=>scheduleSync(2000));window.addEventListener('offline',()=>setStatus());
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){scheduleSync(1500);render(true)}else persist(true)});
 
 /* ================================================================ domain helpers */
 const HOL=()=>new Set((META.prefs.holidays||[]).map(h=>h.date));
