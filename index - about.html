@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<script>if(location.protocol==='http:'&&!/^(localhost|127\.)/.test(location.hostname))location.replace('https:'+location.href.slice(5));</script>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Flow — Planner for Working ACCA Students | Study, Close &amp; Habits</title>
+<meta name="description" content="Flow is a free, private planner web app for working ACCA students: daily schedule, exam study tracker, month-end close checklist and habit streaks, synced with Google Calendar on every device.">
+<meta name="robots" content="index,follow,max-image-preview:large">
+<link rel="canonical" href="https://syahman312.github.io/flow/about/">
+<!-- Google Search Console: paste your verification tag here, e.g. <meta name="google-site-verification" content="…"> -->
+<meta name="theme-color" content="#000000">
+<meta name="color-scheme" content="dark">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Flow">
+<meta property="og:url" content="https://syahman312.github.io/flow/about/">
+<meta property="og:title" content="Flow — the planner for working ACCA students">
+<meta property="og:description" content="Today, Plan, Study, Close and Habits in one app. Syncs with Google Calendar, works offline, your data stays in your own Google Sheet and Drive.">
+<meta property="og:image" content="https://syahman312.github.io/flow/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Flow logo with the five tabs: Today, Plan, Study, Close, Habits">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "SoftwareApplication",
+      "name": "Flow",
+      "url": "https://syahman312.github.io/flow/about/",
+      "image": "https://syahman312.github.io/flow/og-image.png",
+      "applicationCategory": "ProductivityApplication",
+      "operatingSystem": "iOS, Android, Windows, macOS (web app)",
+      "description": "Planner web app for working ACCA students: daily schedule, study tracker, month-end close checklist and habit streaks, synced with Google Calendar.",
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "MYR" },
+      "featureList": ["Daily planner with Top 3 focus", "Google Calendar two-way sync", "ACCA exam countdown and study hours", "Month-end close checklist by working day", "Habit streaks", "Offline support", "Google Drive backups"]
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        { "@type": "Question", "name": "Where is my data stored?", "acceptedAnswer": { "@type": "Answer", "text": "In your own Google Sheet, on your devices, and in daily backups in your own Google Drive. Flow has no server of its own." } },
+        { "@type": "Question", "name": "Does Flow work offline?", "acceptedAnswer": { "@type": "Answer", "text": "Yes. Changes are saved on the device immediately and sync when you are back online." } },
+        { "@type": "Question", "name": "How are close deadlines counted?", "acceptedAnswer": { "@type": "Answer", "text": "Each checklist item has a working-day deadline (WD1, WD2 and so on) after month-end. Weekends and the public holidays you add are skipped." } }
+      ]
+    }
+  ]
+}
+</script>
+<style>
+:root{--bg:#000;--card:#101113;--line:#24252a;--text:#f3f3f4;--mute:#9a9ca3;--a:#2dd4bf}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:17px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:var(--a)}
+.wrap{max-width:860px;margin:0 auto;padding:0 20px}
+header.site{display:flex;align-items:center;gap:12px;padding:calc(16px + env(safe-area-inset-top,0px)) 0 16px}
+header.site img{border-radius:10px}
+header.site nav{margin-left:auto;display:flex;gap:18px;font-size:15px}
+header.site nav a{color:var(--mute);text-decoration:none;padding:10px 0}
+.hero{padding:48px 0 32px}
+h1{font-size:clamp(34px,7vw,56px);line-height:1.05;letter-spacing:-.03em;margin:0 0 16px}
+h1 span{background:linear-gradient(90deg,#2dd4bf,#60a5fa,#a78bfa);-webkit-background-clip:text;background-clip:text;color:transparent}
+.lead{font-size:20px;color:var(--mute);max-width:620px}
+.cta{display:inline-flex;align-items:center;min-height:52px;padding:0 24px;border-radius:14px;background:var(--a);color:#000;font-weight:700;text-decoration:none;margin:18px 12px 0 0}
+.cta.ghost{background:none;border:1px solid var(--line);color:var(--text)}
+h2{font-size:28px;letter-spacing:-.02em;margin:56px 0 16px}
+h3{font-size:19px;margin:0 0 6px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px}
+.card p{margin:0;color:var(--mute);font-size:16px}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:8px}
+ol,ul{color:var(--mute);padding-left:22px}
+li{margin:6px 0}
+details{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 18px;margin:10px 0}
+summary{cursor:pointer;font-weight:650;min-height:28px}
+details p{color:var(--mute);margin:10px 0 0}
+footer{border-top:1px solid var(--line);margin-top:64px;padding:24px 0 calc(32px + env(safe-area-inset-bottom,0px));color:var(--mute);font-size:14px;display:flex;gap:16px;flex-wrap:wrap}
+footer a{color:var(--mute)}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="site">
+  <a href="../about/" aria-label="Flow home"><img src="../icon-192.png" width="40" height="40" alt="Flow logo — a progress ring with a check mark"></a>
+  <strong>Flow</strong>
+  <nav aria-label="Main"><a href="#features">Features</a><a href="#privacy">Privacy</a><a href="#faq">FAQ</a><a href="../">Open app</a></nav>
+</header>
+
+<main>
+<section class="hero">
+  <h1>Work full-time. Pass ACCA. <span>Keep your flow.</span></h1>
+  <p class="lead">One calm place for your day, your exam prep, your month-end close and the habits that hold it all together — synced with Google Calendar on your phone, tablet and PC.</p>
+  <a class="cta" href="../">Open Flow</a><a class="cta ghost" href="#how">How it works</a>
+</section>
+
+<section id="features" aria-labelledby="features-h">
+  <h2 id="features-h">Five tabs, one routine</h2>
+  <div class="grid">
+    <article class="card"><h3><span class="dot" style="background:#2dd4bf"></span>Today</h3><p>Your progress ring, Top 3 focus, a focus timer, today's schedule from Google Calendar, tasks and habit check-ins — with streaks and XP to keep you coming back.</p></article>
+    <article class="card"><h3><span class="dot" style="background:#60a5fa"></span>Plan</h3><p>A week strip, day agenda and inbox. Type “IC recon tmr 3pm #work !high” and Flow fills in the date, time, area and priority.</p></article>
+    <article class="card"><h3><span class="dot" style="background:#a78bfa"></span>Study</h3><p>Exam countdowns, study hours against your target, hours per week still needed, and topic confidence for every ACCA paper.</p></article>
+    <article class="card"><h3><span class="dot" style="background:#fbbf24"></span>Close</h3><p>A month-end checklist with working-day deadlines (WD1, WD2…), public holidays skipped, on-time history, and dates pushed to Google Calendar.</p></article>
+    <article class="card"><h3><span class="dot" style="background:#4ade80"></span>Habits</h3><p>Daily or weekly targets, one-tap check-ins, streaks, best runs and a 12-week heatmap.</p></article>
+  </div>
+</section>
+
+<section id="how" aria-labelledby="how-h">
+  <h2 id="how-h">How syncing works</h2>
+  <ol>
+    <li>Every change is saved on your device first, so Flow is instant and works offline.</li>
+    <li>A small Google Apps Script that <em>you</em> own saves changes to a Google Sheet in your Drive — you can open and edit it like any spreadsheet.</li>
+    <li>Tasks with a date can be placed on a dedicated “Flow” Google Calendar. Move an event there and the task moves too.</li>
+    <li>Every device pulls the latest changes when you open it, and every two minutes while it's open.</li>
+  </ol>
+</section>
+
+<section id="privacy" aria-labelledby="privacy-h">
+  <h2 id="privacy-h">Privacy &amp; security</h2>
+  <ul>
+    <li>No Flow server, no ads, no tracking scripts. The app is a static page served over HTTPS.</li>
+    <li>The app never sees your Google password. It talks only to your own Apps Script, using a long random app key.</li>
+    <li>Backups go to a “Flow Backups” folder in your own Google Drive (last 30 kept), plus snapshots on each device.</li>
+    <li>The app pages are marked <code>noindex</code>, so search engines only see this public page.</li>
+  </ul>
+</section>
+
+<section id="faq" aria-labelledby="faq-h">
+  <h2 id="faq-h">FAQ</h2>
+  <details><summary>Where is my data stored?</summary><p>In your own Google Sheet, on your devices, and in daily backups in your own Google Drive. Flow has no server of its own.</p></details>
+  <details><summary>Does Flow work offline?</summary><p>Yes. Changes are saved on the device immediately and sync when you're back online.</p></details>
+  <details><summary>How are close deadlines counted?</summary><p>Each checklist item has a working-day deadline (WD1, WD2 and so on) after month-end. Weekends and the public holidays you add are skipped.</p></details>
+  <details><summary>Can I install it like an app?</summary><p>Yes. On iPhone open it in Safari → Share → Add to Home Screen. On Android use Chrome → ⋮ → Add to Home screen.</p></details>
+</section>
+</main>
+
+<footer>
+  <span>© 2026 Flow</span>
+  <a href="../">Open the app</a>
+  <a href="#features">Features</a>
+  <a href="#privacy">Privacy</a>
+  <a href="#faq">FAQ</a>
+</footer>
+</div>
+</body>
+</html>

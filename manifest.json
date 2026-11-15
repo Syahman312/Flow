@@ -1,0 +1,22 @@
+{
+  "name": "Flow — Today, Plan, Study, Close & Habits",
+  "short_name": "Flow",
+  "description": "Daily planner for working ACCA students: schedule, study tracker, month-end close checklist and habits, synced with Google Calendar.",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "categories": ["productivity", "education", "finance"],
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Plan", "url": "./?tab=plan", "icons": [{ "src": "icon-192.png", "sizes": "192x192" }] },
+    { "name": "Close", "url": "./?tab=close", "icons": [{ "src": "icon-192.png", "sizes": "192x192" }] }
+  ]
+}
