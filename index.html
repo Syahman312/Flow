@@ -219,7 +219,7 @@ label.f>span{display:block;font-size:12.5px;color:var(--mute);margin-bottom:5px;
 <script>
 'use strict';
 /* ================================================================ basics */
-const APP_VERSION='2.1.0';
+const APP_VERSION='2.1.1';
 const $=(s,r=document)=>r.querySelector(s);
 const pad=n=>String(n).padStart(2,'0');
 const ymd=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
@@ -260,6 +260,8 @@ let META=Object.assign({queue:{},fails:{},lastSync:0,lastFull:0,events:[],prefsD
 META.prefs=Object.assign({updated:0,name:'',holidays:DEFAULT_HOLIDAYS,calendars:[],calDefault:true},META.prefs||{});
 let CONN=LS.get('flow2.conn',{url:'',key:'',device:''});
 let LOGS=LS.get('flow2.log',[]);
+// clean up tombstones left by older versions for records that never reached the server
+if(!(CONN.url&&CONN.key))COLS.forEach(c=>Object.values(DB[c]).forEach(r=>{if(r.deleted&&!r._pid){delete DB[c][r.id];delete META.queue[c+':'+r.id]}}));
 let persistT;
 function persist(now){clearTimeout(persistT);const f=()=>{LS.set('flow2.db',DB);LS.set('flow2.meta',META)};now?f():persistT=setTimeout(f,250)}
 window.addEventListener('pagehide',()=>persist(true));
@@ -276,7 +278,10 @@ window.addEventListener('unhandledrejection',e=>log('error','app',(e.reason&&e.r
 /* ================================================================ records */
 const all=col=>Object.values(DB[col]).filter(r=>!r.deleted);
 function put(col,rec,opt={}){rec.updated=Date.now();DB[col][rec.id]=rec;META.queue[col+':'+rec.id]=1;persist();scheduleSync(1500);if(!opt.silent)render()}
-function remove(col,id,opt){const r=DB[col][id];if(!r)return;r.deleted=true;put(col,r,opt)}
+function remove(col,id,opt={}){const r=DB[col][id];if(!r)return;
+  // never reached the server (local-only, or not pushed yet while disconnected): drop it outright instead of keeping a tombstone
+  if(!connected()&&!r._pid){delete DB[col][id];delete META.queue[col+':'+id];persist();if(!opt.silent)render();return}
+  r.deleted=true;put(col,r,opt)}
 const pending=()=>Object.keys(META.queue).length;
 const connected=()=>!!(CONN.url&&CONN.key);
 
