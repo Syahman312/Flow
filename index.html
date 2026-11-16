@@ -53,7 +53,8 @@ button,a,input,select,textarea,label,[data-a]{touch-action:manipulation}
 .icon-btn:active{background:var(--card2)}
 .icon-btn svg{width:22px;height:22px}
 /* main */
-main{padding:6px 0 calc(96px + var(--safeB))}
+/* main is also .wrap, so set only top/bottom here (the .wrap rule owns the side padding) */
+main#view{padding-top:6px;padding-bottom:calc(96px + var(--safeB))}
 section{margin:18px 0}
 h2{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--mute);margin:0 0 8px;font-weight:650;display:flex;align-items:center;gap:8px}
 h2 .act{margin-left:auto;text-transform:none;letter-spacing:0;font-size:13px;color:var(--acc);font-weight:600;min-height:32px;padding:0 4px}
@@ -189,7 +190,11 @@ label.f>span{display:block;font-size:12.5px;color:var(--mute);margin-bottom:5px;
 .wdh{font-size:12px;color:var(--mute);padding:10px 12px 4px;font-weight:650;background:var(--card);border-bottom:1px solid var(--line)}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 @media(max-width:360px){body{font-size:14px}.top h1{font-size:21px}.kpis{grid-template-columns:repeat(2,1fr)}.hgrid{grid-template-columns:minmax(0,1fr) repeat(7,28px);gap:3px}.hdot{width:28px;height:28px}.timer .tt{font-size:26px}.pill{max-width:38vw}}
-.tabs .brand,.tabs kbd{display:none}
+.tabs .brand,.tabs kbd,.tabs .side-extra{display:none}
+.cd-n{min-width:52px;text-align:center;flex:none}.cd-n b{display:block;font-size:24px;font-weight:750;line-height:1;font-variant-numeric:tabular-nums}.cd-n span{font-size:10.5px;color:var(--mute)}
+.cd-big{min-width:84px;text-align:center;flex:none}.cd-big b{display:block;font-size:44px;font-weight:800;letter-spacing:-.03em;line-height:1;font-variant-numeric:tabular-nums}.cd-big span{font-size:11.5px;color:var(--mute)}
+.pdots{display:flex;gap:5px;align-items:center}.pdots i{width:9px;height:9px;border-radius:50%;background:var(--card2);border:1px solid var(--line)}.pdots i.on{background:var(--study);border-color:transparent}.pdots i.cur{border-color:var(--study);box-shadow:0 0 0 2px color-mix(in srgb,var(--study) 30%,transparent)}
+.wkdots{display:flex;gap:4px}.wkdots i{width:12px;height:12px;border-radius:4px;background:var(--card2);border:1px solid var(--line)}.wkdots i.on{background:var(--hc,var(--habit));border-color:transparent}
 /* touch screens: the content area only scrolls vertically, so sideways swipes always reach the tab-swipe handler */
 @media(pointer:coarse){#view{touch-action:pan-y pinch-zoom}}
 /* mouse / trackpad */
@@ -209,7 +214,7 @@ label.f>span{display:block;font-size:12.5px;color:var(--mute);margin-bottom:5px;
   .top .wrap{min-height:46px}.top h1{font-size:20px}
   .tabs button{flex-direction:row;justify-content:center;gap:8px;min-height:44px;padding:0;font-size:12px}
   .tabs svg{width:20px;height:20px}
-  main{padding-bottom:calc(80px + var(--safeB))}
+  main#view{padding-bottom:calc(64px + var(--safeB))}
   .tabs .wrap{padding-right:64px}
   .fab{bottom:calc(var(--safeB) + 1px);right:max(12px,env(safe-area-inset-right,0px));width:44px;height:44px;border-radius:12px;font-size:24px;box-shadow:none;z-index:31}
   .sheet{max-height:96dvh}
@@ -227,15 +232,18 @@ label.f>span{display:block;font-size:12.5px;color:var(--mute);margin-bottom:5px;
   .tabs button{flex-direction:row;justify-content:flex-start;gap:12px;min-height:46px;padding:0 12px;border-radius:12px;font-size:15px;color:var(--mute)}
   .tabs button[aria-selected=true]{background:var(--card2);color:var(--acc)}
   .tabs .tl-l{flex:1;text-align:left}
+  .tabs .side-extra{display:flex;align-items:center;gap:12px;min-height:46px;padding:0 12px;border-radius:12px;font-size:15px;font-weight:600;color:var(--mute);margin-top:14px;border-top:1px solid var(--line);border-radius:0;padding-top:14px}
+  .tabs .side-extra kbd{display:inline-grid;place-items:center;min-width:22px;height:22px;border-radius:6px;border:1px solid var(--line);font:600 11px/1 inherit;color:var(--faint)}
+  body[data-tab=review] .side-extra{color:var(--acc)}
   .tabs kbd{display:inline-grid;place-items:center;min-width:22px;height:22px;border-radius:6px;border:1px solid var(--line);font:600 11px/1 inherit;color:var(--faint)}
-  main{padding:6px 0 56px}
+  main#view{padding-bottom:56px}
   #view{columns:2;column-gap:28px}
   #view>section{break-inside:avoid;margin:0;padding:12px 0 14px}
   #view>.seg,#view>.span{column-span:all;margin:12px 0 4px}
   .fab{right:max(32px,calc((100vw - 232px - 1120px)/2 + 32px));bottom:32px}
   .toast{bottom:40px;left:calc(50% + 116px)}
 }
-@media(min-width:1024px) and (hover:none){.tabs kbd{display:none}}
+@media(min-width:1024px) and (hover:none){.tabs kbd,.side-extra kbd{display:none}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 </style>
 </head>
@@ -256,7 +264,7 @@ label.f>span{display:block;font-size:12.5px;color:var(--mute);margin-bottom:5px;
   <button role="tab" data-a="tab" data-tab="study" aria-selected="false"><svg viewBox="0 0 24 24"><path d="M2 8l10-5 10 5-10 5z"/><path d="M6 10.5V16c0 1.5 2.7 3 6 3s6-1.5 6-3v-5.5M22 8v6"/></svg><span class="tl-l">Study</span><kbd aria-hidden="true">3</kbd></button>
   <button role="tab" data-a="tab" data-tab="close" aria-selected="false"><svg viewBox="0 0 24 24"><path d="M9 3h6l1 2h3v16H5V5h3z"/><path d="M9 12l2 2 4-4M9 17h6"/></svg><span class="tl-l">Close</span><kbd aria-hidden="true">4</kbd></button>
   <button role="tab" data-a="tab" data-tab="habits" aria-selected="false"><svg viewBox="0 0 24 24"><path d="M12 21s-7-4.4-7-10.5A4.5 4.5 0 0 1 12 7a4.5 4.5 0 0 1 7 3.5C19 16.6 12 21 12 21z"/></svg><span class="tl-l">Habits</span><kbd aria-hidden="true">5</kbd></button>
-</div></nav>
+</div><button class="side-extra" data-a="openReview"><span aria-hidden="true">📈</span><span class="tl-l">Weekly review</span><kbd aria-hidden="true">R</kbd></button></nav>
 
 <div class="scrim" id="scrim" data-a="closeSheet"></div>
 <div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle"><div class="grab"></div><div class="wrap" id="sheetBody"></div></div>
@@ -267,7 +275,7 @@ label.f>span{display:block;font-size:12.5px;color:var(--mute);margin-bottom:5px;
 <script>
 'use strict';
 /* ================================================================ basics */
-const APP_VERSION='2.4.0';
+const APP_VERSION='2.5.0';
 const $=(s,r=document)=>r.querySelector(s);
 const pad=n=>String(n).padStart(2,'0');
 const ymd=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
@@ -533,6 +541,29 @@ const isDoneSubj=p=>['Passed','Exempt','Completed'].includes(p.status);
 const subjIcon=p=>kindOf(p)==='ACCA'?'':esc(p.icon||KINDS[kindOf(p)].icon)+' ';
 const subjTopics=pid=>all('topics').filter(x=>x.paper===pid).sort((a,b)=>(a.order||0)-(b.order||0));
 const readiness=tp=>tp.length?tp.reduce((a,x)=>a+(+x.conf||0),0)/(tp.length*3):0;
+/* ---------- exam countdown helpers */
+const examList=()=>{const t=todayS();return all('papers').filter(p=>p.exam&&p.exam>=t&&!isDoneSubj(p)).sort((a,b)=>a.exam.localeCompare(b.exam))};
+const urgColor=d=>d<=14?'var(--bad)':d<=42?'var(--close)':'var(--study)';
+const wkDays=d=>d<7?`${d} day${d===1?'':'s'}`:`${Math.floor(d/7)} wk${Math.floor(d/7)>1?'s':''}${d%7?` ${d%7} day${d%7>1?'s':''}`:''}`;
+const sitting=p=>{const d=pd(p.exam);return kindOf(p)==='ACCA'?`${MONL[d.getMonth()]} ${d.getFullYear()} sitting`:''};
+function needPerWeek(p){const t=+p.target||0;if(!t||!p.exam)return 0;const left=Math.max(0,t-studyMins(p.id)/60);return left/Math.max(dayDiff(p.exam,todayS())/7,.5)}
+function countdownRow(p,act){const d=dayDiff(p.exam,todayS()),K=KINDS[kindOf(p)],need=needPerWeek(p),wk=studyMins(p.id,ymd(weekStart(new Date())))/60;
+  return `<div class="row" data-a="${act||'gotoPaper'}" data-id="${esc(p.id)}"><div class="cd-n" style="color:${urgColor(d)}"><b>${d}</b><span>${d===1?'day':'days'}</span></div><div class="grow"><div class="t-title">${subjIcon(p)}${esc(p.code)} ${K.exam?'exam':'due'} · ${fmtDate(p.exam)}</div><div class="meta"><span>${wkDays(d)} to go</span>${sitting(p)?`<span>${sitting(p)}</span>`:''}${need?`<span>${wk.toFixed(1)}h this week · need ${need.toFixed(1)}h/wk</span>`:''}</div></div><span class="muted">›</span></div>`}
+/* ---------- pomodoro settings */
+const POMO=()=>Object.assign({focus:25,short:5,long:15,every:4,auto:false},META.prefs.pomo||{});
+const focusToday=()=>{const t=todayS(),ss=all('sessions').filter(s=>s.date===t&&s.kind==='Focus');return{n:ss.length,mins:ss.reduce((a,s)=>a+(+s.mins||0),0)}};
+/* ---------- weekly review helpers */
+function weekStats(from,to){
+  const inR=d=>!!d&&d>=from&&d<=to;
+  const done=all('tasks').filter(x=>x.done&&x.doneAt&&inR(x.doneAt.slice(0,10)));
+  const ss=all('sessions').filter(s=>inR(s.date)),mins=ss.reduce((a,s)=>a+(+s.mins||0),0),focus=ss.filter(s=>s.kind==='Focus').length;
+  let hd=0,hp=0;activeHabits().forEach(h=>{let c=0;for(let i=0;i<7;i++)if(habitDone(h.id,ymd(addDays(pd(from),i))))c++;const tg=h.target||7;hd+=Math.min(c,tg);hp+=tg});
+  const cl=all('closeLog').filter(x=>x.done&&x.doneAt&&inR(x.doneAt.slice(0,10))).length;
+  const days=new Set();done.forEach(x=>days.add(x.doneAt.slice(0,10)));ss.forEach(x=>days.add(x.date));all('habitLog').filter(x=>x.done&&inR(x.date)).forEach(x=>days.add(x.date));
+  return{done,ss,mins,focus,hpct:hp?Math.round(hd/hp*100):0,cl,days:days.size}}
+const reviewOf=from=>(META.prefs.reviews||{})[from]||null;
+function weekFocusLine(){const r=reviewOf(ymd(addDays(weekStart(new Date()),-7)));if(!r||!r.focus)return'';
+  return `<section><div class="card row" data-a="openReview" style="border:1px solid var(--line);border-radius:var(--r)"><span style="font-size:22px" aria-hidden="true">🎯</span><div class="grow"><div class="tiny muted" style="text-transform:uppercase;letter-spacing:.08em;font-weight:650">This week's focus</div><div class="t-title" style="white-space:pre-line">${esc(r.focus)}</div></div><span class="muted">›</span></div></section>`}
 
 /* ================================================================ UI helpers */
 let UI={planDay:todayS(),openPaper:null,studyKind:'All',showDone:false,openHabit:null,closePer:null,sheet:null,diag:null,logs:false};
@@ -605,7 +636,7 @@ function vToday(){
     <div class="grow"><h2 id="h-hero" class="sr">Your day</h2><div class="big">${greet()}${name}</div>
     <div class="muted small">${total?`${dn} of ${total} done today`:'Nothing planned yet — add something below'}</div>
     <div class="chips"><span class="chip" title="Days in a row with something done">🔥 ${S.streak}-day streak</span><span class="chip" title="${S.toNext} XP to next level">⭐ Lv ${S.lvl} · ${S.xp} XP</span></div>
-    <div class="bar" aria-hidden="true"><i style="width:${Math.round(S.pct*100)}%"></i></div></div></div></section>
+    <div class="bar" aria-hidden="true"><i style="width:${Math.round(S.pct*100)}%"></i></div></div></div></section>${weekFocusLine()}
   <section><form class="quick" data-form="quick" autocomplete="off"><label class="sr" for="qa">Quick add task</label><input id="qa" name="q" placeholder="Add a task… try “IC recon tmr 3pm #work !high”" enterkeyhint="done"><button class="btn pri" aria-label="Add task">Add</button></form></section>`;
 
   // Top 3
@@ -634,9 +665,8 @@ function vToday(){
   if(items.length){const p=defaultPeriod(),wd=wdToday(p),done=items.filter(i=>closeDone(p,i.id)).length;
     const dueNow=items.filter(i=>!closeDone(p,i.id)&&wdDate(p,i.wd)<=t);
     if(done<items.length)h+=`<section aria-labelledby="h-close"><h2 id="h-close">🧾 Month-end close</h2><div class="card row" style="border:1px solid var(--line);border-radius:var(--r)" data-a="tab" data-tab="close">${ring(done/items.length,52,6,'var(--close)')}<div class="grow"><div class="t-title">${perLabel(p)} close · ${wd?'WD'+wd+' today':'starts '+relDay(wdDate(p,1))}</div><div class="meta">${done}/${items.length} done${dueNow.length?` · <span class="tag ${dueNow.some(i=>wdDate(p,i.wd)<t)?'bad':'warn'}">${dueNow.length} due</span>`:''}</div></div><span class="muted">›</span></div></section>`}
-  const next=all('papers').filter(p=>p.exam&&p.exam>=t&&!isDoneSubj(p)).sort((a,b)=>a.exam.localeCompare(b.exam))[0];
-  if(next){const days=dayDiff(next.exam,t),wk=studyMins(next.id,ymd(weekStart(new Date())));
-    h+=`<section aria-labelledby="h-study"><h2 id="h-study">📚 Study</h2><div class="card row" style="border:1px solid var(--line);border-radius:var(--r)" data-a="tab" data-tab="study"><div style="text-align:center;min-width:56px"><div style="font-size:26px;font-weight:750;color:var(--study)">${days}</div><div class="tiny muted">days</div></div><div class="grow"><div class="t-title">${subjIcon(next)}${esc(next.code)} ${KINDS[kindOf(next)].exam?'exam':'due'} · ${fmtDate(next.exam)}</div><div class="meta">${hrs(wk)} studied this week · ${hrs(studyMins(next.id))}${next.target?` of ${next.target}h`:''} total</div></div><span class="muted">›</span></div></section>`}
+  const exams=examList().slice(0,3);
+  if(exams.length)h+=`<section aria-labelledby="h-study"><h2 id="h-study">⏳ Exam countdown<button class="act" data-a="tab" data-tab="study">Study →</button></h2><div class="list">${exams.map(p=>countdownRow(p)).join('')}</div></section>`;
 
   // Evening: plan tomorrow / Monday: weekly review
   const hr=new Date().getHours(),tm=ymd(addDays(new Date(),1));
@@ -648,19 +678,33 @@ function weeklyReview(){
   const ws=weekStart(new Date()),from=ymd(addDays(ws,new Date().getDay()===0?0:-7)),to=ymd(addDays(pd(from),6));
   const td=all('tasks').filter(x=>x.done&&x.doneAt&&x.doneAt.slice(0,10)>=from&&x.doneAt.slice(0,10)<=to).length;
   const sm=studyMins(null,from,to);const hb=activeHabits();let hd=0,hp=0;hb.forEach(h=>{for(let i=0;i<7;i++)if(habitDone(h.id,ymd(addDays(pd(from),i))))hd++;hp+=h.target||7});
-  return `<section aria-labelledby="h-wr"><h2 id="h-wr">📈 Week ${fmtDate(from)} – ${fmtDate(to)}</h2><div class="kpis"><div class="kpi"><b>${td}</b><span>tasks done</span></div><div class="kpi"><b>${hrs(sm)}</b><span>studied</span></div><div class="kpi"><b>${hp?Math.round(hd/hp*100):0}%</b><span>habits hit</span></div></div></section>`}
+  return `<section aria-labelledby="h-wr"><h2 id="h-wr">📈 Week ${fmtDate(from)} – ${fmtDate(to)}<button class="act" data-a="openReview">Full review →</button></h2><div class="kpis"><div class="kpi"><b>${td}</b><span>tasks done</span></div><div class="kpi"><b>${hrs(sm)}</b><span>studied</span></div><div class="kpi"><b>${hp?Math.round(hd/hp*100):0}%</b><span>habits hit</span></div></div></section>`}
 
 /* ---------- focus timer */
 function timerLeft(){const T=META.timer;if(!T)return 0;return T.paused!=null?T.paused:Math.max(0,T.start+T.dur*6e4-Date.now())}
 function timerCard(){
-  const T=META.timer;const papers=all('papers').filter(p=>!isDoneSubj(p));
-  if(!T)return `<div class="card"><div class="timer"><div class="grow"><div class="muted small">Pick a length and go. Focus sessions on a subject are logged to Study automatically.</div>
-    <div class="seg" style="margin-top:10px" role="group" aria-label="Session length">${[25,45,60].map(m=>`<button data-a="startTimer" data-m="${m}">${m} min</button>`).join('')}</div>
-    ${papers.length?`<label class="f"><span>Studying</span><select id="timerPaper"><option value="">Nothing specific — just focus</option>${papers.map(p=>`<option value="${esc(p.id)}" ${META.lastTimerPaper===p.id?'selected':''}>${subjIcon(p)}${esc(p.code)}${p.title!==p.code?' — '+esc(p.title):''}</option>`).join('')}</select></label>`:''}</div></div></div>`;
-  const left=timerLeft(),pct=1-left/(T.dur*6e4),p=T.paper&&paperOf(T.paper);
-  return `<div class="card"><div class="timer"><div id="timerRing">${ring(pct,84,8,T.mode==='break'?'var(--habit)':'var(--study)',' ')}</div><div class="grow"><div class="tt" id="timerTxt" aria-live="off">${fmtLeft(left)}</div>
-    <div class="muted small">${T.mode==='break'?'Break — stretch, water, eyes off the screen':(p?subjIcon(p)+esc(p.code)+(T.topic&&DB.topics[T.topic]?' · '+esc(DB.topics[T.topic].title):p.title!==p.code?' · '+esc(p.title):''):'Focus session')}</div>
-    <div class="btns" style="margin-top:10px"><button class="btn sm" data-a="pauseTimer">${T.paused!=null?'Resume':'Pause'}</button><button class="btn sm bad" data-a="stopTimer">Stop</button></div></div></div></div>`}
+  const T=META.timer,P=POMO(),papers=all('papers').filter(p=>!isDoneSubj(p)),ft=focusToday();
+  const today=`<div class="tiny muted" style="margin-top:10px">Today: 🍅 ${ft.n} focus session${ft.n===1?'':'s'}${ft.mins?' · '+hrs(ft.mins)+' logged':''}</div>`;
+  const dots=(r,brk)=>`<div class="pdots" aria-label="Round ${r} of ${P.every}">${[...Array(P.every)].map((_,i)=>`<i class="${i<r-1||(brk&&i===r-1)?'on':''}${i===r-1&&!brk?' cur':''}"></i>`).join('')}</div>`;
+  const pick=`<label class="f"><span>Studying</span><select id="timerPaper"><option value="">Nothing specific — just focus</option>${papers.map(p=>`<option value="${esc(p.id)}" ${META.lastTimerPaper===p.id?'selected':''}>${subjIcon(p)}${esc(p.code)}${p.title!==p.code?' — '+esc(p.title):''}</option>`).join('')}</select></label>`;
+  if(!T&&META.timerNext){const N=META.timerNext,p=N.paper&&paperOf(N.paper);
+    return `<div class="card"><div class="split"><h3>Break's over</h3>${dots(N.round,false)}</div><p class="muted small" style="margin:6px 0 0">Round ${N.round} of ${P.every}${p?' · '+subjIcon(p)+esc(p.code):''}</p>
+      <div class="btns" style="margin-top:12px"><button class="btn sm pri" data-a="nextRound">▶ Start round ${N.round}</button><button class="btn sm" data-a="endPomo">Done for now</button></div>${today}</div>`}
+  if(!T)return `<div class="card"><div class="split"><div class="muted small">Pomodoro: ${P.focus} min focus, ${P.short} min break, ${P.long} min break after every ${P.every}. Time on a subject is logged to Study.</div><button class="icon-btn" data-a="pomoSettings" aria-label="Timer settings" style="flex:none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg></button></div>
+    <div class="seg" style="margin-top:10px" role="group" aria-label="Session length"><button data-a="startTimer" data-m="${P.focus}" class="on">🍅 ${P.focus} min</button>${[45,60].filter(m=>m!==P.focus).map(m=>`<button data-a="startTimer" data-m="${m}">${m} min</button>`).join('')}</div>
+    ${papers.length?pick:''}${today}</div>`;
+  const left=timerLeft(),pct=1-left/(T.dur*6e4),p=T.paper&&paperOf(T.paper),brk=T.mode==='break',r=T.round||1;
+  return `<div class="card"><div class="timer"><div id="timerRing">${ring(pct,84,8,brk?'var(--habit)':'var(--study)',' ')}</div><div class="grow"><div class="split"><div class="tt" id="timerTxt" aria-live="off">${fmtLeft(left)}</div>${dots(r,brk)}</div>
+    <div class="muted small">${brk?(T.long?'Long break — walk, water, rest your eyes':'Short break — stretch, water, eyes off the screen'):(p?subjIcon(p)+esc(p.code)+(T.topic&&DB.topics[T.topic]?' · '+esc(DB.topics[T.topic].title):p.title!==p.code?' · '+esc(p.title):''):'Focus session')} · round ${r}/${P.every}</div>
+    <div class="btns" style="margin-top:10px"><button class="btn sm" data-a="pauseTimer">${T.paused!=null?'Resume':'Pause'}</button><button class="btn sm" data-a="addFive">+5 min</button>${brk?'<button class="btn sm" data-a="skipBreak">Skip break</button>':''}<button class="btn sm bad" data-a="stopTimer">Stop</button></div></div></div>${today}</div>`}
+function startFocus(m,paper,topic,round){META.timer={mode:'focus',start:Date.now(),dur:m,paper:paper||'',topic:topic||'',paused:null,round:round||1};META.timerNext=null;persist();buzz();render();toast(`🍅 Focus ${m} min — round ${round||1}`)}
+function pomoSheet(){const P=POMO(),n=(id,v,mn,mx)=>`<input id="${id}" type="number" inputmode="numeric" min="${mn}" max="${mx}" value="${v}">`;
+  openSheet(`<h2 class="st" id="sheetTitle">Pomodoro timer</h2><p class="muted small">The classic is 25 min focus, 5 min break, and a 15–30 min break after every 4 rounds.</p>
+  <div class="grid2"><label class="f"><span>Focus (min)</span>${n('pm_focus',P.focus,5,120)}</label><label class="f"><span>Short break (min)</span>${n('pm_short',P.short,1,30)}</label></div>
+  <div class="grid2"><label class="f"><span>Long break (min)</span>${n('pm_long',P.long,5,60)}</label><label class="f"><span>Long break every</span>${n('pm_every',P.every,2,8)}</label></div>
+  <div class="switch" style="margin-top:10px"><span>Start the next round automatically after a break</span><input type="checkbox" id="pm_auto" ${P.auto?'checked':''} aria-label="Auto-start next round"></div>
+  <p class="tiny muted">Alerts when a round ends need notifications allowed (Settings → 🔔). On iPhone, Flow must be on your Home Screen, and iOS may pause the timer alert while Flow is in the background — the time is still counted correctly.</p>
+  <div class="foot"><button class="btn pri" data-a="savePomo">Save</button></div>`)}
 const fmtLeft=ms=>{const s=Math.ceil(ms/1e3);return `${pad(Math.floor(s/60))}:${pad(s%60)}`};
 function timerTick(){
   const T=META.timer;if(!T)return;const left=timerLeft();
@@ -672,13 +716,20 @@ function timerTick(){
 setInterval(timerTick,1000);
 function finishTimer(partialMins){
   const T=META.timer;if(!T)return;META.timer=null;document.title='Flow — Today, Plan, Study, Close & Habits';
+  const P=POMO(),r=T.round||1;
   if(T.mode==='focus'){
     const mins=partialMins??T.dur;
     if(T.paper&&mins>=1){const p=paperOf(T.paper);put('sessions',{id:uid(),title:`${p?p.code:'Study'} · ${mins} min`,paper:T.paper,topic:T.topic||'',date:ymd(new Date(T.start)),mins,kind:'Focus'},{silent:true})}
-    if(partialMins==null){buzz([80,60,80]);confetti();notify('Focus session done 🎉',T.paper?`${mins} min logged to Study`:'Take a 5-minute break');
-      META.timer={mode:'break',start:Date.now(),dur:5,paper:'',paused:null}}
+    if(partialMins==null){const long=r%P.every===0;buzz([80,60,80]);confetti();
+      notify(`Round ${r} done 🍅`,`${T.paper?mins+' min logged to Study. ':''}${long?`Long break: ${P.long} min`:`Break: ${P.short} min`}`);
+      META.timer={mode:'break',start:Date.now(),dur:long?P.long:P.short,paper:T.paper||'',topic:T.topic||'',paused:null,round:r,long}}
+    else META.timerNext=null;
     toast(T.paper?`✅ ${mins} min logged · +${Math.round(mins/2)} XP`:'✅ Focus session done');
-  }else{notify('Break over','Ready for another round?');buzz(40)}
+  }else{
+    const next={round:T.long?1:r+1,paper:T.paper||'',topic:T.topic||''};
+    notify('Break over',`Ready for round ${next.round}?`);buzz(40);
+    if(P.auto){persist();startFocus(P.focus,next.paper,next.topic,next.round);return}
+    META.timerNext=next}
   persist();render()}
 function notify(title,body){try{if('Notification'in window&&Notification.permission==='granted'&&document.visibilityState!=='visible')new Notification(title,{body,icon:'icon-192.png'})}catch(e){}}
 
@@ -686,7 +737,8 @@ function habitTile(h,d){const on=habitDone(h.id,d),s=habitStreak(h);
   return `<button class="ht ${on?'on':''}" style="--hc:${esc(h.color||'#4ade80')}" data-a="toggleHabit" data-id="${esc(h.id)}" data-date="${d}" aria-pressed="${on}"><span class="em" aria-hidden="true">${esc(h.icon||'✨')}</span><span class="nm">${esc(h.title)}</span><span class="st">${s.n?`🔥 ${s.n} ${s.unit}${s.n>1?'s':''}`:'Start a streak'}</span></button>`}
 
 /* ================================================================ PLAN */
-function vPlan(){
+function vPlan(){return vPlanBody()+`<section><div class="card row" data-a="openReview" style="border:1px solid var(--line);border-radius:var(--r)"><span style="font-size:22px" aria-hidden="true">📈</span><div class="grow"><div class="t-title">Weekly review</div><div class="meta">How your week went, and what to focus on next</div></div><span class="muted">›</span></div></section>`}
+function vPlanBody(){
   const sel=UI.planDay,ws=weekStart(pd(sel)),t=todayS(),tasks=all('tasks');
   let h=`<section aria-labelledby="h-week"><h2 id="h-week" class="sr">Week</h2><div class="navrow"><button class="icon-btn" data-a="week" data-n="-7" aria-label="Previous week">‹</button><div class="grow" style="text-align:center;font-weight:650">${MONL[pd(sel).getMonth()]} ${pd(sel).getFullYear()}</div>${sel!==t?`<button class="btn sm" data-a="planDay" data-date="${t}">Today</button>`:''}<button class="icon-btn" data-a="week" data-n="7" aria-label="Next week">›</button></div><div class="week">`;
   for(let i=0;i<7;i++){const d=ymd(addDays(ws,i)),n=tasks.filter(x=>x.date===d&&!x.done).length,e=eventsOn(d).length;
@@ -717,14 +769,20 @@ function vStudy(){
   const sm=(from,to,pid)=>ss.filter(s=>(!pid||s.paper===pid)&&(!from||s.date>=from)&&(!to||s.date<=to)).reduce((a,s)=>a+(+s.mins||0),0);
   let h='';
   if(kinds.length>1)h+=`<div class="seg" style="margin-top:14px" role="group" aria-label="Show">${['All',...KIND_KEYS.filter(k=>kinds.includes(k))].map(k=>`<button data-a="studyKind" data-v="${k}" class="${k===f?'on':''}" aria-pressed="${k===f}">${k==='All'?'All':KINDS[k].icon+' '+esc(KINDS[k].label)}</button>`).join('')}</div>`;
-  // next deadline
-  const next=active.filter(p=>p.exam&&p.exam>=t)[0];
+  // exam countdown: hero for the nearest, rows for the rest, nudge for exams with no date
+  const ups=active.filter(p=>p.exam&&p.exam>=t),next=ups[0],T=META.timer||META.timerNext;
+  if(T)h+=`<section aria-labelledby="h-tmr"><h2 id="h-tmr">🍅 Focus timer</h2>${timerCard()}</section>`;
   if(next){const K=KINDS[kindOf(next)],topics=subjTopics(next.id),ready=readiness(topics);
-    const done=studyMins(next.id)/60,target=+next.target||0,days=dayDiff(next.exam,t),wks=Math.max(days/7,.5),need=Math.max(0,target-done)/wks;
+    const done=studyMins(next.id)/60,target=+next.target||0,days=dayDiff(next.exam,t),need=needPerWeek(next);
     const pct=topics.length?ready:(target?done/target:0);
-    h+=`<section aria-labelledby="h-next"><h2 id="h-next">${K.exam?'Next exam':'Next deadline'}</h2><div class="card"><div class="hero">${ring(pct,84,8,'var(--study)')}<div class="grow"><div class="big">${subjIcon(next)}${esc(next.code)} · ${days} day${days===1?'':'s'}</div><div class="muted small">${next.title!==next.code?esc(next.title)+' · ':''}${fmtDate(next.exam)}</div>
-      <div class="small" style="margin-top:8px">${done.toFixed(1)}h${target?` of ${target}h · <b style="color:var(--study)">${need.toFixed(1)}h/week</b> to hit target`:' logged'}</div>${target?`<div class="bar"><i style="width:${Math.min(100,done/target*100)}%"></i></div>`:''}<div class="tiny muted" style="margin-top:6px">${topics.length?`Ring = topic readiness (${topics.length} topics)`:target?'Ring = hours vs target':'Add topics or a target to track progress'}</div></div></div>
-      <div class="btns" style="margin-top:12px"><button class="btn sm pri" data-a="studyNow" data-id="${esc(next.id)}">▶ Focus 25 min</button><button class="btn sm" data-a="logStudy" data-id="${esc(next.id)}">+ Log time</button><button class="btn sm" data-a="blockStudy" data-id="${esc(next.id)}">📅 Block time</button></div></div></section>`}
+    h+=`<section aria-labelledby="h-next"><h2 id="h-next">⏳ ${K.exam?'Exam countdown':'Next deadline'}</h2><div class="card"><div class="hero"><div class="cd-big" style="color:${urgColor(days)}"><b>${days}</b><span>${days===1?'day':'days'} left</span></div><div class="grow"><div class="big">${subjIcon(next)}${esc(next.code)}</div><div class="muted small">${next.title!==next.code?esc(next.title)+' · ':''}${fmtDate(next.exam)}${sitting(next)?' · '+sitting(next):''}</div>
+      <div class="small" style="margin-top:6px">${wkDays(days)} to go · ${done.toFixed(1)}h${target?` of ${target}h`:' logged'}${need?` · <b style="color:var(--study)">${need.toFixed(1)}h/week</b> needed`:''}</div>${target?`<div class="bar"><i style="width:${Math.min(100,done/target*100)}%"></i></div>`:''}
+      ${topics.length?`<div class="tiny muted" style="margin-top:6px">Topic readiness ${Math.round(ready*100)}% (${topics.length} topics)</div>`:''}</div>${ring(pct,64,7,'var(--study)')}</div>
+      <div class="btns" style="margin-top:12px"><button class="btn sm pri" data-a="studyNow" data-id="${esc(next.id)}">🍅 Pomodoro</button><button class="btn sm" data-a="logStudy" data-id="${esc(next.id)}">+ Log time</button><button class="btn sm" data-a="blockStudy" data-id="${esc(next.id)}">📅 Block time</button></div></div>
+      ${ups.length>1?`<div class="list" style="margin-top:10px">${ups.slice(1).map(p=>countdownRow(p,'openPaper')).join('')}</div>`:''}</section>`}
+  const nodate=active.filter(p=>!p.exam&&KINDS[kindOf(p)].exam);
+  if(nodate.length)h+=`<section><div class="list">${nodate.map(p=>`<div class="row" data-a="editPaper" data-id="${esc(p.id)}"><span style="font-size:20px" aria-hidden="true">📅</span><div class="grow"><div class="t-title small">${subjIcon(p)}${esc(p.code)} has no exam date</div><div class="meta">Add it to start the countdown${kindOf(p)==='ACCA'?' — sittings are in Mar, Jun, Sep and Dec':''}</div></div><span class="btn sm">Set date</span></div>`).join('')}</div></section>`;
+  if(!T)h+=`<section aria-labelledby="h-tmr"><h2 id="h-tmr">🍅 Focus timer</h2>${timerCard()}</section>`;
   // focus next: weak / not-started topics, nearest deadline first
   const weak=active.flatMap(p=>subjTopics(p.id).filter(x=>(+x.conf||0)<2).sort((a,b)=>(+b.conf||0)-(+a.conf||0)).map(x=>({x,p}))).slice(0,3);
   if(weak.length)h+=`<section aria-labelledby="h-fn"><h2 id="h-fn">Focus next</h2><div class="list">${weak.map(({x,p})=>`<div class="row" style="cursor:default"><div class="grow"><div class="t-title small">${esc(x.title)}</div><div class="meta"><span class="tag ACCA">${subjIcon(p)}${esc(p.code)}</span><span>${+x.conf?'Weak':'Not started'}</span></div></div><button class="btn sm" data-a="studyNow" data-id="${esc(p.id)}" data-topic="${esc(x.id)}" aria-label="Focus 25 minutes on ${esc(x.title)}">▶ 25m</button></div>`).join('')}</div><p class="tiny muted">Topics you rated weak or haven't started yet. Rate them inside each subject.</p></section>`;
@@ -800,8 +858,39 @@ function vHabits(){
     h+='</div>'});
   return h+'</section>'}
 
+/* ================================================================ WEEKLY REVIEW */
+function vReview(){
+  const off=UI.reviewOff??(new Date().getDay()===1?-1:0),ws=addDays(weekStart(new Date()),off*7),from=ymd(ws),to=ymd(addDays(ws,6)),t=todayS();
+  const W=weekStats(from,to),L=weekStats(ymd(addDays(ws,-7)),ymd(addDays(ws,-1))),rv=reviewOf(from)||{};
+  const delta=(a,b,f=x=>x)=>a===b?'<span class="faint">same as last week</span>':`<span style="color:var(${a>b?'--habit':'--bad'})">${a>b?'▲':'▼'} ${f(Math.abs(a-b))}</span> <span class="faint">vs last week</span>`;
+  const kpi=(v,lab,d)=>`<div class="kpi"><b>${v}</b><span>${lab}</span><div class="tiny" style="margin-top:4px">${d}</div></div>`;
+  const label=off===0?'This week':off===-1?'Last week':`${-off} weeks ago`;
+  let h=`<div class="span"><div class="navrow" style="margin-top:12px"><button class="icon-btn" data-a="revWeek" data-n="-1" aria-label="Previous week">‹</button><div class="grow" style="text-align:center"><div style="font-weight:700">${label}</div><div class="tiny muted">${fmtDate(from)} – ${fmtDate(to)}</div></div><button class="icon-btn" data-a="revWeek" data-n="1" aria-label="Next week" ${off>=0?'disabled style="opacity:.3"':''}>›</button></div></div>`;
+  h+=`<section aria-labelledby="h-rk"><h2 id="h-rk">At a glance</h2><div class="kpis">${kpi(W.done.length,'tasks done',delta(W.done.length,L.done.length))}${kpi(hrs(W.mins),'studied',delta(W.mins,L.mins,hrs))}${kpi('🍅 '+W.focus,'focus sessions',delta(W.focus,L.focus))}${kpi(W.hpct+'%','habits hit',delta(W.hpct,L.hpct,x=>x+'%'))}${kpi(W.cl,'close items done',delta(W.cl,L.cl))}${kpi(W.days+'/7','active days',delta(W.days,L.days))}</div></section>`;
+  // study
+  const mins=[...Array(7)].map((_,i)=>W.ss.filter(s=>s.date===ymd(addDays(ws,i))).reduce((a,s)=>a+(+s.mins||0),0)),max=Math.max(60,...mins);
+  const subs=all('papers').filter(p=>W.ss.some(s=>s.paper===p.id)||(+p.weekly>0&&!isDoneSubj(p)));
+  h+=`<section aria-labelledby="h-rs"><h2 id="h-rs">Study</h2><div class="card"><svg class="chart" viewBox="0 0 350 130" role="img" aria-label="Study minutes per day: ${mins.map((m,i)=>DOW[(i+1)%7]+' '+m).join(', ')}">${mins.map((m,i)=>{const bh=Math.round(m/max*78),x=10+i*48;return `<rect x="${x}" y="${100-bh}" width="34" height="${Math.max(bh,2)}" rx="6" fill="${ymd(addDays(ws,i))===t?'var(--study)':'#3b3550'}"/><text x="${x+17}" y="120" text-anchor="middle" font-size="11" fill="var(--mute)">${DOW[(i+1)%7]}</text>${m?`<text x="${x+17}" y="${Math.max(12,94-bh)}" text-anchor="middle" font-size="10" fill="var(--mute)">${hrs(m)}</text>`:''}`}).join('')}</svg>
+    ${subs.length?subs.map(p=>{const m=W.ss.filter(s=>s.paper===p.id).reduce((a,s)=>a+(+s.mins||0),0)/60,g=+p.weekly||0;return `<div style="margin-top:10px"><div class="split small"><span>${subjIcon(p)}${esc(p.code)}</span><span class="muted">${m.toFixed(1)}h${g?` / ${g}h goal${m>=g?' ✅':''}`:''}</span></div>${g?`<div class="bar"><i style="width:${Math.min(100,m/g*100)}%;background:var(--study)"></i></div>`:''}</div>`}).join(''):'<p class="small muted" style="margin:8px 0 0">No study logged this week.</p>'}</div>
+    ${examList().slice(0,1).map(p=>`<div class="list" style="margin-top:10px">${countdownRow(p)}</div>`).join('')}</section>`;
+  // habits
+  const hb=activeHabits();
+  if(hb.length)h+=`<section aria-labelledby="h-rh"><h2 id="h-rh">Habits</h2><div class="list">${hb.map(x=>{let c=0;const ds=[...Array(7)].map((_,i)=>{const on=habitDone(x.id,ymd(addDays(ws,i)));if(on)c++;return `<i class="${on?'on':''}"></i>`}).join(''),tg=x.target||7;
+    return `<div class="row" style="cursor:default;--hc:${esc(x.color||'#4ade80')}"><div class="grow small">${esc(x.icon||'')} ${esc(x.title)}</div><div class="wkdots" aria-label="${c} of 7 days">${ds}</div><span class="small ${c>=tg?'':'muted'}" style="min-width:44px;text-align:right">${c}/${tg}${c>=tg?' ✅':''}</span></div>`}).join('')}</div></section>`;
+  // tasks
+  const byArea=['Work','ACCA','Personal'].map(a=>[a,W.done.filter(x=>(x.area||'Work')===a).length]);
+  const open=all('tasks').filter(x=>!x.done&&x.date&&x.date>=from&&x.date<=to&&x.date<t).sort(byTime);
+  h+=`<section aria-labelledby="h-rt"><h2 id="h-rt">Tasks</h2><div class="card"><div class="chips" style="margin:0">${byArea.map(([a,n])=>`<span class="chip"><span class="tag ${a}" style="border:0;padding:0;background:none">${a}</span> ${n} done</span>`).join('')}</div></div>
+    ${open.length?`<h2 style="margin-top:14px">Still open from this week · ${open.length}<button class="act" data-a="revCarry" data-from="${from}" data-to="${to}">Move all to today</button></h2><div class="list">${open.slice(0,8).map(x=>taskRow(x,{showDate:true,star:false})).join('')}</div>${open.length>8?`<p class="tiny muted">+${open.length-8} more</p>`:''}`:''}</section>`;
+  // reflection
+  const q=(id,lab,ph,v)=>`<label class="f"><span>${lab}</span><textarea id="${id}" maxlength="400" rows="3" placeholder="${ph}">${esc(v||'')}</textarea></label>`;
+  h+=`<section aria-labelledby="h-rr"><h2 id="h-rr">Reflect</h2><div class="card">${q('rv_well','What went well?','e.g. Finished IC recs a day early, 3 SBR sessions',rv.well)}${q('rv_block','What got in the way?','e.g. Late nights at close, skipped revision on Wednesday',rv.block)}${q('rv_focus','Focus for next week','e.g. IFRS 16 question bank + 2 mock questions',rv.focus)}
+    <div class="btns" style="margin-top:12px;align-items:center"><button class="btn pri" data-a="saveReview" data-week="${from}">Save review</button>${rv.at?`<span class="tiny muted">Saved ${esc(new Date(rv.at).toLocaleString([], {weekday:'short',day:'numeric',month:'short',hour:'numeric',minute:'2-digit'}))}</span>`:''}</div>
+    <p class="tiny muted" style="margin-bottom:0">Your “focus for next week” shows on Today all next week.</p></div></section>`;
+  return h}
+
 /* ================================================================ render */
-const VIEWS={today:['Today',vToday],plan:['Plan',vPlan],study:['Study',vStudy],close:['Close',vClose],habits:['Habits',vHabits]};
+const VIEWS={today:['Today',vToday],plan:['Plan',vPlan],study:['Study',vStudy],close:['Close',vClose],habits:['Habits',vHabits],review:['Weekly review',vReview]};
 let lastRender=0;
 function render(soft){
   const tab=VIEWS[META.tab]?META.tab:'today';
@@ -827,6 +916,7 @@ document.addEventListener('keydown',e=>{
   const tabs=['today','plan','study','close','habits'];
   if(/^[1-5]$/.test(e.key)){e.preventDefault();A.tab({tab:tabs[+e.key-1]})}
   else if(e.key==='n'||e.key==='N'){e.preventDefault();A.fab()}
+  else if(e.key==='r'||e.key==='R'){e.preventDefault();A.openReview()}
   else if(e.key==='/'){const q=$('#view form[data-form=quick] input');if(q){e.preventDefault();q.focus()}}
 });
 const segBtns=(name,opts,val)=>`<div class="seg" role="radiogroup" data-seg="${name}">${opts.map(o=>`<button type="button" role="radio" data-a="seg" data-v="${esc(o)}" class="${o===val?'on':''}" aria-checked="${o===val}">${esc(o)}</button>`).join('')}</div>`;
@@ -1032,11 +1122,21 @@ const A={
   planDay:d=>{UI.planDay=d.date;if(META.tab!=='plan'){META.tab='plan';persist()}render()},
   week:d=>{UI.planDay=ymd(addDays(pd(UI.planDay),+d.n));render()},
   rollOver:()=>{const t=todayS();all('tasks').filter(x=>!x.done&&x.date&&x.date<t).forEach(x=>{x.date=t;put('tasks',x,{silent:true})});render();toast('Moved to today')},
-  startTimer:d=>{const sel=$('#timerPaper');const paper=sel?sel.value:'';META.lastTimerPaper=paper;META.timer={mode:'focus',start:Date.now(),dur:+d.m,paper,topic:'',paused:null};persist();buzz();render();toast(`Focus ${d.m} min — you've got this`)},
+  startTimer:d=>{const sel=$('#timerPaper');const paper=sel?sel.value:'';META.lastTimerPaper=paper;startFocus(+d.m||POMO().focus,paper,'',1)},
+  nextRound:()=>{const N=META.timerNext;if(N)startFocus(POMO().focus,N.paper,N.topic,N.round)},endPomo:()=>{META.timerNext=null;persist();render()},
+  addFive:()=>{const T=META.timer;if(!T)return;T.dur+=5;if(T.paused!=null)T.paused+=5*6e4;persist();render();toast('+5 minutes')},skipBreak:()=>{if(META.timer&&META.timer.mode==='break')finishTimer()},
+  pomoSettings:()=>pomoSheet(),
+  openReview:()=>{if(META.tab!=='review')META.prevTab=META.tab;META.tab='review';UI.reviewOff=null;closeSheet();persist();render();scrollTo(0,0)},
+  revWeek:d=>{const cur=UI.reviewOff??(new Date().getDay()===1?-1:0);UI.reviewOff=Math.min(0,cur+(+d.n));render()},
+  revCarry:d=>{const t=todayS(),ts=all('tasks').filter(x=>!x.done&&x.date&&x.date>=d.from&&x.date<=d.to&&x.date<t);ts.forEach(x=>{x.date=t;put('tasks',x,{silent:true})});render();toast(`Moved ${ts.length} task${ts.length===1?'':'s'} to today`)},
+  saveReview:d=>{const r={well:val('rv_well'),block:val('rv_block'),focus:val('rv_focus'),at:Date.now()};const all_=Object.assign({},META.prefs.reviews||{},{[d.week]:r});
+    META.prefs.reviews=Object.fromEntries(Object.entries(all_).sort((a,b)=>b[0].localeCompare(a[0])).slice(0,26)); // keep the last 26 weeks
+    META.prefs.updated=Date.now();META.prefsDirty=true;persist();scheduleSync();render();toast('📈 Review saved')},
+  savePomo:()=>{const g=(id,mn,mx,d)=>clamp(Math.round(+val(id)||d),mn,mx);META.prefs.pomo={focus:g('pm_focus',5,120,25),short:g('pm_short',1,30,5),long:g('pm_long',5,60,15),every:g('pm_every',2,8,4),auto:$('#pm_auto').checked};META.prefs.updated=Date.now();META.prefsDirty=true;persist();scheduleSync();closeSheet();render();toast('Timer saved')},
   pauseTimer:()=>{const T=META.timer;if(!T)return;if(T.paused!=null){T.start=Date.now()-(T.dur*6e4-T.paused);T.paused=null}else T.paused=timerLeft();persist();render()},
-  stopTimer:()=>{const T=META.timer;if(!T)return;const done=Math.floor((T.dur*6e4-timerLeft())/6e4);
+  stopTimer:()=>{const T=META.timer;if(!T)return;META.timerNext=null;const done=Math.floor((T.dur*6e4-timerLeft())/6e4);
     if(T.mode==='focus'&&T.paper&&done>=5&&confirm(`Log the ${done} minutes you did?`))finishTimer(done);else{META.timer=null;document.title='Flow';persist();render()}},
-  studyNow:d=>{closeSheet();META.tab='today';META.timer={mode:'focus',start:Date.now(),dur:25,paper:d.id,topic:d.topic||'',paused:null};META.lastTimerPaper=d.id;persist();render();scrollTo(0,0)},
+  studyNow:d=>{closeSheet();META.lastTimerPaper=d.id;startFocus(POMO().focus,d.id,d.topic||'',1);scrollTo(0,0)},
   logStudy:d=>logSheet(d.id),
   saveLog:()=>{const pid=val('l_paper'),m=+val('l_mins'),topic=val('l_topic'),note=val('l_note');if(!m||m<1){toast('Enter minutes');return}const p=paperOf(pid);closeSheet();put('sessions',{id:uid(),title:`${p?p.code:'Study'} · ${m} min`,paper:pid,topic,note,date:val('l_date')||todayS(),mins:m,kind:'Manual'});toast(`Logged ${hrs(m)} · +${Math.round(m/2)} XP`)},
   blockStudy:d=>{const p=paperOf(d.id);taskSheet({title:`${kindOf(p)==='Book'?'Read':'Study'} ${p.code}`,area:kindOf(p)==='ACCA'?'ACCA':'Personal',paper:d.id,date:ymd(addDays(new Date(),1)),time:'20:30',dur:90,cal:connected()})},
@@ -1044,6 +1144,7 @@ const A={
   newPaper:d=>paperSheet(null,d.kind),skind:d=>{const dr=sheetSubjectDraft(d.id,d.v);if(!d.id&&val('p_kind')==='ACCA'&&d.v!=='ACCA'&&dr.target==='150')dr.target='';paperSheet(dr)},studyKind:d=>{UI.studyKind=d.v;render()},showDone:()=>{UI.showDone=!UI.showDone;render()},editPaper:d=>paperSheet(Object.assign({},DB.papers[d.id])),savePaper:d=>savePaper(d.id),
   delPaper:d=>{if(confirm('Delete this subject and its topics? Study sessions are kept.')){closeSheet();all('topics').filter(t=>t.paper===d.id).forEach(t=>remove('topics',t.id,{silent:true}));remove('papers',d.id)}},
   openPaper:d=>{UI.openPaper=UI.openPaper===d.id?null:d.id;render()},
+  gotoPaper:d=>{UI.openPaper=d.id;META.tab='study';persist();render();scrollTo(0,0)},
   addTopics:d=>topicsSheet(d.id),
   saveTopics:d=>{const lines=$('#t_lines').value.split('\n').map(s=>s.trim()).filter(Boolean).slice(0,80);const base=all('topics').filter(t=>t.paper===d.id).length;closeSheet();lines.forEach((l,i)=>put('topics',{id:uid(),title:l.slice(0,150),paper:d.id,conf:0,order:base+i},{silent:true}));render();toast(`${lines.length} topic(s) added`)},
   conf:d=>{const t=DB.topics[d.id];t.conf=+d.v;buzz(8);put('topics',t);if(+d.v===3)toast('💪 Strong!')},
@@ -1138,7 +1239,7 @@ $('#fileIn').addEventListener('change',async e=>{const f=e.target.files[0];e.tar
   const inHScroll=el=>{for(;el&&el!==view;el=el.parentElement)if(el.scrollWidth>el.clientWidth+2&&/(auto|scroll)/.test(getComputedStyle(el).overflowX))return true;return false};
   view.addEventListener('touchstart',e=>{
     mode='off';
-    if(busy||e.touches.length!==1||$('#sheet').classList.contains('open'))return;
+    if(busy||e.touches.length!==1||$('#sheet').classList.contains('open')||!ORDER.includes(META.tab))return;
     const t=e.touches[0];
     if(t.clientX<24||t.clientX>innerWidth-24)return;               // leave screen edges to the browser's back/forward gesture
     if(e.target.closest('input,textarea,select,[contenteditable]')||inHScroll(e.target))return;
