@@ -190,6 +190,8 @@ label.f>span{display:block;font-size:12.5px;color:var(--mute);margin-bottom:5px;
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 @media(max-width:360px){body{font-size:14px}.top h1{font-size:21px}.kpis{grid-template-columns:repeat(2,1fr)}.hgrid{grid-template-columns:minmax(0,1fr) repeat(7,28px);gap:3px}.hdot{width:28px;height:28px}.timer .tt{font-size:26px}.pill{max-width:38vw}}
 .tabs .brand,.tabs kbd{display:none}
+/* touch screens: the content area only scrolls vertically, so sideways swipes always reach the tab-swipe handler */
+@media(pointer:coarse){#view{touch-action:pan-y pinch-zoom}}
 /* mouse / trackpad */
 @media(hover:hover){
   .row[data-a]:hover,.list .row.task:hover{background:var(--card2)}
@@ -265,7 +267,7 @@ label.f>span{display:block;font-size:12.5px;color:var(--mute);margin-bottom:5px;
 <script>
 'use strict';
 /* ================================================================ basics */
-const APP_VERSION='2.3.0';
+const APP_VERSION='2.4.0';
 const $=(s,r=document)=>r.querySelector(s);
 const pad=n=>String(n).padStart(2,'0');
 const ymd=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
@@ -1126,6 +1128,54 @@ document.addEventListener('submit',e=>{
 $('#fileIn').addEventListener('change',async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;
   if(f.size>20e6){toast('File too large');return}
   try{await restoreData(JSON.parse(await f.text()),f.name)}catch(err){log('error','import','Import failed: '+f.name,err.message);toast('Import failed: '+err.message,4000)}});
+
+/* ================================================================ swipe between tabs (touch screens) */
+(()=>{
+  const ORDER=['today','plan','study','close','habits'],view=$('#view');
+  const reduce=()=>matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let sx=0,sy=0,dx=0,mode='off',busy=false,trail=[];
+  // don't steal swipes from things that scroll sideways themselves (e.g. the habit history grid)
+  const inHScroll=el=>{for(;el&&el!==view;el=el.parentElement)if(el.scrollWidth>el.clientWidth+2&&/(auto|scroll)/.test(getComputedStyle(el).overflowX))return true;return false};
+  view.addEventListener('touchstart',e=>{
+    mode='off';
+    if(busy||e.touches.length!==1||$('#sheet').classList.contains('open'))return;
+    const t=e.touches[0];
+    if(t.clientX<24||t.clientX>innerWidth-24)return;               // leave screen edges to the browser's back/forward gesture
+    if(e.target.closest('input,textarea,select,[contenteditable]')||inHScroll(e.target))return;
+    sx=t.clientX;sy=t.clientY;dx=0;trail=[[performance.now(),0]];mode='wait';
+  },{passive:true});
+  view.addEventListener('touchmove',e=>{
+    if(mode==='off'||busy)return;
+    const t=e.touches[0],x=t.clientX-sx,y=t.clientY-sy;
+    if(mode==='wait'){if(Math.abs(x)<10&&Math.abs(y)<10)return;
+      if(Math.abs(x)<=Math.abs(y)*1.2){mode='off';return}         // mostly vertical: let the page scroll
+      mode='h';view.style.transition='none'}
+    e.preventDefault();
+    const i=ORDER.indexOf(META.tab),edge=(x>0&&i<=0)||(x<0&&i===ORDER.length-1);
+    dx=edge?x/3:x;                                                  // rubber-band at the first/last tab
+    const now=performance.now();trail.push([now,x]);while(trail.length>2&&now-trail[0][0]>120)trail.shift();
+    if(!reduce())view.style.transform=`translateX(${dx}px)`;
+  },{passive:false});
+  const spring=()=>{view.style.transition='transform .25s cubic-bezier(.2,.8,.2,1)';view.style.transform=''};
+  const show=tab=>{META.tab=tab;persist();render();scrollTo(0,0);buzz(8)};
+  function go(tab,dir){
+    if(reduce()){view.style.transform='';show(tab);return}
+    busy=true;const w=view.offsetWidth;
+    view.style.transition='transform .15s ease-in';view.style.transform=`translateX(${-dir*w}px)`;
+    setTimeout(()=>{show(tab);view.style.transition='none';view.style.transform=`translateX(${dir*w*.3}px)`;void view.offsetWidth;
+      view.style.transition='transform .24s cubic-bezier(.2,.8,.2,1)';view.style.transform='';
+      setTimeout(()=>{busy=false;view.style.transition=''},260)},150)}
+  view.addEventListener('touchend',()=>{
+    if(mode!=='h'){mode='off';return}mode='off';
+    const i=ORDER.indexOf(META.tab),w=view.offsetWidth,a=trail[0],z=trail[trail.length-1];
+    const v=(z[1]-a[1])/Math.max(16,z[0]-a[0]),far=Math.min(w*.22,160),flick=Math.abs(dx)>40&&Math.abs(v)>.5; // speed over the last ~120ms only
+    const dir=dx<-far||(flick&&v<0)?1:dx>far||(flick&&v>0)?-1:0,next=dir&&ORDER[i+dir];
+    next?go(next,dir):spring();
+  });
+  view.addEventListener('touchcancel',()=>{if(mode==='h')spring();mode='off'});
+  // one-time hint on touch devices
+  if(matchMedia('(pointer:coarse)').matches&&!META.swipeTip)setTimeout(()=>{toast('Tip: swipe left or right to switch tabs',3500);META.swipeTip=1;persist()},1800);
+})();
 
 /* ================================================================ boot */
 {const qt=new URLSearchParams(location.search).get('tab');if(VIEWS[qt])META.tab=qt}
