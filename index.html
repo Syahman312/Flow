@@ -191,6 +191,8 @@ label.f>span{display:block;font-size:12.5px;color:var(--mute);margin-bottom:5px;
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 @media(max-width:360px){body{font-size:14px}.top h1{font-size:21px}.kpis{grid-template-columns:repeat(2,1fr)}.hgrid{grid-template-columns:minmax(0,1fr) repeat(7,28px);gap:3px}.hdot{width:28px;height:28px}.timer .tt{font-size:26px}.pill{max-width:38vw}}
 .tabs .brand,.tabs kbd,.tabs .side-extra{display:none}
+.pw{position:relative}.pw input{padding-right:52px}.pw input[type=text]{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:15px}
+.pw .icon-btn{position:absolute;right:0;top:50%;transform:translateY(-50%)}
 .cd-n{min-width:52px;text-align:center;flex:none}.cd-n b{display:block;font-size:24px;font-weight:750;line-height:1;font-variant-numeric:tabular-nums}.cd-n span{font-size:10.5px;color:var(--mute)}
 .cd-big{min-width:84px;text-align:center;flex:none}.cd-big b{display:block;font-size:44px;font-weight:800;letter-spacing:-.03em;line-height:1;font-variant-numeric:tabular-nums}.cd-big span{font-size:11.5px;color:var(--mute)}
 .pdots{display:flex;gap:5px;align-items:center}.pdots i{width:9px;height:9px;border-radius:50%;background:var(--card2);border:1px solid var(--line)}.pdots i.on{background:var(--study);border-color:transparent}.pdots i.cur{border-color:var(--study);box-shadow:0 0 0 2px color-mix(in srgb,var(--study) 30%,transparent)}
@@ -275,7 +277,7 @@ label.f>span{display:block;font-size:12.5px;color:var(--mute);margin-bottom:5px;
 <script>
 'use strict';
 /* ================================================================ basics */
-const APP_VERSION='2.5.0';
+const APP_VERSION='2.5.1';
 const $=(s,r=document)=>r.querySelector(s);
 const pad=n=>String(n).padStart(2,'0');
 const ymd=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
@@ -298,6 +300,8 @@ const ago=ms=>{const s=(Date.now()-ms)/1e3;return s<45?'just now':s<3600?`${Math
 const isoLocal=d=>{const o=-d.getTimezoneOffset(),sg=o>=0?'+':'-',a=Math.abs(o);return `${ymd(d)}T${pad(d.getHours())}:${pad(d.getMinutes())}:00${sg}${pad(Math.floor(a/60))}:${pad(a%60)}`};
 const hrs=m=>{m=Math.round(m);return m<60?`${m}m`:`${Math.floor(m/60)}h${m%60?' '+m%60+'m':''}`};
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const EYE='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+const EYE_OFF='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.6 5.1A10.7 10.7 0 0 1 12 5c6.4 0 10 7 10 7a17 17 0 0 1-2.9 3.8M6.6 6.6C3.7 8.4 2 12 2 12s3.6 7 10 7c1.9 0 3.5-.6 4.9-1.4M9.9 9.9a3 3 0 0 0 4.2 4.2M3 3l18 18"/></svg>';
 const CHECK='<svg viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4.5 4.5L19 7.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
 /* ================================================================ storage */
@@ -1052,7 +1056,7 @@ async function settingsSheet(){
   <h3>You</h3><label class="f"><span>Name (for greetings)</span><input id="s_name" value="${esc(META.prefs.name||'')}" maxlength="40"></label>
   <h3>Connection</h3>
   <label class="f"><span>Web App URL</span><input id="s_url" value="${esc(CONN.url)}" placeholder="https://script.google.com/macros/s/…/exec" inputmode="url" autocomplete="off" spellcheck="false"></label>
-  <label class="f"><span>App key</span><input id="s_key" type="password" value="${esc(CONN.key)}" autocomplete="off" spellcheck="false" placeholder="flow_…"></label>
+  <label class="f"><span>App key</span><div class="pw"><input id="s_key" type="password" value="${esc(CONN.key)}" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="flow_…"><button type="button" class="icon-btn" data-a="toggleKey" aria-label="Show app key" aria-pressed="false" aria-controls="s_key">${EYE}</button></div></label>
   <label class="f"><span>This device's name (shows in logs)</span><input id="s_dev" value="${esc(deviceName())}" maxlength="40"></label>
   <div class="btns" style="margin-top:12px"><button class="btn pri" data-a="saveConn">Save & connect</button><button class="btn" data-a="diag">Run checks</button></div>
   <div id="diagOut">${UI.diag||''}</div>
@@ -1179,6 +1183,9 @@ const A={
   starterHabits:()=>{STARTER_HABITS.forEach(([icon,title,target,color],k)=>put('habits',{id:uid(),title,icon,target,color,order:k,archived:false},{silent:true}));render();toast('Added — edit or archive any of them')},
   // settings
   saveSettings:()=>{const n=val('s_name');const cd=$('#s_caldef').checked;if(n!==(META.prefs.name||'')||cd!==!!META.prefs.calDefault){META.prefs.name=n;META.prefs.calDefault=cd;META.prefs.updated=Date.now();META.prefsDirty=true;persist();scheduleSync()}closeSheet();render()},
+  // show / hide the app key; hides itself again after 30 s so it isn't left on screen
+  toggleKey:(d,el)=>{const i=$('#s_key');if(!i)return;const show=i.type==='password';i.type=show?'text':'password';el.setAttribute('aria-pressed',show);el.setAttribute('aria-label',show?'Hide app key':'Show app key');el.innerHTML=show?EYE_OFF:EYE;
+    clearTimeout(i._hide);if(show)i._hide=setTimeout(()=>{if(i.isConnected&&i.type==='text')A.toggleKey({},el)},30000)},
   saveConn:async()=>{const url=val('s_url'),key=val('s_key');
     if(url&&!URL_RE.test(url)){toast('That URL should end in /exec and start with https://script.google.com/',4000);return}
     CONN={url,key,device:val('s_dev')||deviceName()};LS.set('flow2.conn',CONN);META.lastErr='';
