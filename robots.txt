@@ -3,10 +3,10 @@
 # For a project site (…github.io/Flow/) copy these lines into the robots.txt of your
 # "syahman312.github.io" repository. The app pages are also protected by <meta name="robots" content="noindex">.
 User-agent: *
-Allow: /flow/about/
-Allow: /flow/og-image.png
-Disallow: /flow/index.html
-Disallow: /flow/?
-Disallow: /flow/apps-script/
+Allow: /Flow/about/
+Allow: /Flow/og-image.png
+Disallow: /Flow/index.html
+Disallow: /Flow/?
+Disallow: /Flow/apps-script/
 
 Sitemap: https://syahman312.github.io/Flow/sitemap.xml
