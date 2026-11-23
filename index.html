@@ -193,6 +193,12 @@ label.f>span{display:block;font-size:12.5px;color:var(--mute);margin-bottom:5px;
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 @media(max-width:360px){body{font-size:14px}.top h1{font-size:21px}.kpis{grid-template-columns:repeat(2,1fr)}.hgrid{grid-template-columns:minmax(0,1fr) repeat(7,28px);gap:3px}.hdot{width:28px;height:28px}.timer .tt{font-size:26px}.pill{max-width:38vw}}
 .tabs .brand,.tabs kbd,.tabs .side-extra{display:none}
+/* class day/time rows: day + remove on one line, start/end below (phones); all on one line when there's room */
+.slot{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 36px;gap:6px;align-items:center;padding:8px;margin-top:6px;border:1px solid var(--line);border-radius:12px}
+.slot .s_day{grid-column:1/3}.slot .icon-btn{grid-column:3;grid-row:1;width:36px;height:40px}.slot .s_start{grid-column:1}.slot .s_end{grid-column:2}
+@media(min-width:600px){.slot{grid-template-columns:110px minmax(0,1fr) minmax(0,1fr) 36px;border:0;padding:0}.slot .s_day,.slot .s_start,.slot .s_end,.slot .icon-btn{grid-column:auto;grid-row:auto}}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.f>.fl{display:block;font-size:12.5px;color:var(--mute);margin-bottom:5px;font-weight:600}div.f{margin:12px 0 0}
 .cls.att .check{background:var(--study);border-color:var(--study)}.cls.att .check svg{opacity:1}
 .tt-grid{display:none;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;padding:10px}
 .tt-col{display:flex;flex-direction:column;gap:5px;min-height:70px}
@@ -286,7 +292,7 @@ label.f>span{display:block;font-size:12.5px;color:var(--mute);margin-bottom:5px;
 <script>
 'use strict';
 /* ================================================================ basics */
-const APP_VERSION='2.6.0';
+const APP_VERSION='2.7.0';
 const APP_TITLE='Flow — Today, Plan, Study, Close & Habits';
 const $=(s,r=document)=>r.querySelector(s);
 const pad=n=>String(n).padStart(2,'0');
@@ -631,39 +637,71 @@ function eventsOn(d){
     return ymd(new Date(e.start))===d||(e.start<pd(d).getTime()&&e.end>pd(d).getTime())})}
 /* ---------- class timetable (stored with the synced settings) */
 const CLS=()=>Array.isArray(META.prefs.classes)?META.prefs.classes:[];
+const DAY_ORDER=[1,2,3,4,5,6,0];
+// each class has slots [{day,start,end}]; classes saved before v2.7 had one time for all its days
+const slotsOf=c=>Array.isArray(c.slots)&&c.slots.length?c.slots:(c.days||[]).map(day=>({day,start:c.start,end:c.end}));
+const sortSlots=sl=>sl.slice().sort((a,b)=>DAY_ORDER.indexOf(a.day)-DAY_ORDER.indexOf(b.day)||a.start.localeCompare(b.start));
 const clsMins=c=>Math.max(0,tToMin(c.end)-tToMin(c.start));
-function classesOn(d){const w=pd(d).getDay();return CLS().filter(c=>(c.days||[]).includes(w)&&(!c.from||d>=c.from)&&(!c.to||d<=c.to)).sort((a,b)=>a.start.localeCompare(b.start))}
-const clsSid=(c,d)=>`cls_${c.id}_${d}`;
-const attended=(c,d)=>{const r=DB.sessions[clsSid(c,d)];return!!(r&&!r.deleted)};
+const inTerm=(c,d)=>(!c.from||d>=c.from)&&(!c.to||d<=c.to);
+// one entry per class session on that date: the class with that slot's start/end
+function classesOn(d){const w=pd(d).getDay();return CLS().filter(c=>inTerm(c,d)).flatMap(c=>slotsOf(c).filter(s=>s.day===w).map(s=>Object.assign({},c,{start:s.start,end:s.end}))).sort((a,b)=>a.start.localeCompare(b.start))}
+const clsSid=(c,d)=>`cls_${c.id}_${d}_${c.start.replace(':','')}`;
+const clsLegacySid=(c,d)=>`cls_${c.id}_${d}`; // attendance logged by v2.6
+const live=id=>{const r=DB.sessions[id];return!!(r&&!r.deleted)};
+const attended=(c,d)=>live(clsSid(c,d))||(live(clsLegacySid(c,d))&&(classesOn(d).find(x=>x.id===c.id)||{}).start===c.start);
 const clsStarted=(c,d)=>{const t=todayS();return d<t||(d===t&&new Date().getHours()*60+new Date().getMinutes()>=tToMin(c.start))};
+function setAttended(c,d,on,extraNote){
+  if(!on){[clsSid(c,d),clsLegacySid(c,d)].forEach(id=>{if(live(id))remove('sessions',id,{silent:true})});return}
+  if(attended(c,d))return;const p=c.paper&&paperOf(c.paper),m=clsMins(c);
+  put('sessions',{id:clsSid(c,d),title:`${p?p.code:c.title} · class · ${m} min`,paper:c.paper||'',topic:'',date:d,mins:m,kind:'Class',note:c.title+(extraNote?' '+extraNote:''),deleted:false},{silent:true})}
 const isUrl=v=>/^https?:\/\//i.test(v||'');
 const clsWhere=c=>c.where?(isUrl(c.where)?'online link':c.where):'';
 function classRow(c,d,opt={}){const att=d&&attended(c,d),p=c.paper&&paperOf(c.paper);
   return `<div class="row cls ${att?'att':''}" data-a="editClass" data-id="${esc(c.id)}">${opt.time!==false?`<div class="time">${fmtTime(c.start)}</div><div class="bar-l" style="background:var(--study)"></div>`:''}<div class="grow"><div class="t-title">🎓 ${esc(c.title)}</div><div class="meta">${opt.time===false?`<span>${fmtTime(c.start)}–${fmtTime(c.end)}</span>`:`<span>until ${fmtTime(c.end)}</span>`}${p?`<span class="tag ACCA">${esc(p.code)}</span>`:''}<span>${esc(c.mode||'In person')}${clsWhere(c)?' · '+esc(clsWhere(c)):''}</span>${c.tutor?`<span>${esc(c.tutor)}</span>`:''}${c.to&&c.to<todayS()?'<span class="tag">ended</span>':''}${att?`<span class="tag good">attended · ${hrs(clsMins(c))} logged</span>`:''}</div></div>
-    ${isUrl(c.where)&&c.mode==='Online'?`<a class="btn sm" data-a="ext" href="${esc(c.where)}" target="_blank" rel="noopener noreferrer">Join</a>`:''}${d&&clsStarted(c,d)?`<button class="check-wrap" data-a="attend" data-id="${esc(c.id)}" data-date="${d}" aria-pressed="${att}" aria-label="${att?'Undo attended':'Mark attended'}: ${esc(c.title)}"><span class="check">${CHECK}</span></button>`:''}</div>`}
+    ${isUrl(c.where)&&c.mode==='Online'?`<a class="btn sm" data-a="ext" href="${esc(c.where)}" target="_blank" rel="noopener noreferrer">Join</a>`:''}${d&&clsStarted(c,d)?`<button class="check-wrap" data-a="attend" data-id="${esc(c.id)}" data-date="${d}" data-start="${esc(c.start)}" aria-pressed="${att}" aria-label="${att?'Undo attended':'Mark attended'}: ${esc(c.title)}"><span class="check">${CHECK}</span></button>`:''}</div>`}
 function nextClass(){const n=new Date(),nm=n.getHours()*60+n.getMinutes();for(let i=0;i<15;i++){const d=ymd(addDays(n,i)),c=classesOn(d).find(c=>i>0||tToMin(c.start)>nm);if(c)return{c,d}}return null}
 function timetableHTML(){const cl=CLS(),t=todayS();
   if(!cl.length)return `<section aria-labelledby="h-tt"><h2 id="h-tt">🗓 Class timetable</h2><div class="card"><p class="small muted" style="margin:0 0 10px">Add your weekly ACCA classes. They show in your daily schedule, and one tap after class logs the hours to Study.</p><button class="btn sm pri" data-a="newClass">+ Add a class</button></div></section>`;
-  const order=[1,2,3,4,5,6,0],nx=nextClass(),on=w=>cl.filter(c=>(c.days||[]).includes(w)).sort((a,b)=>a.start.localeCompare(b.start));
-  const wk=cl.filter(c=>!c.to||c.to>=t).reduce((a,c)=>a+clsMins(c)*(c.days||[]).length,0);
+  const nx=nextClass(),occ=w=>cl.flatMap(c=>slotsOf(c).filter(s=>s.day===w).map(s=>Object.assign({},c,{start:s.start,end:s.end}))).sort((a,b)=>a.start.localeCompare(b.start));
+  const wk=cl.filter(c=>!c.to||c.to>=t).reduce((a,c)=>a+slotsOf(c).reduce((x,s)=>x+clsMins(s),0),0);
   let h=`<section aria-labelledby="h-tt"><h2 id="h-tt">🗓 Class timetable<button class="act" data-a="newClass">+ Add</button></h2>`;
-  h+=`<div class="card" style="margin-bottom:10px"><div class="split small"><span>${nx?`Next: <b>${esc(relDay(nx.d))} ${fmtTime(nx.c.start)}</b> · ${esc(nx.c.title)}`:'No classes in the next two weeks'}</span><span class="muted">${hrs(wk)}/week</span></div></div>`;
-  h+=`<div class="tt-grid card" role="table" aria-label="Weekly class timetable">${order.map(w=>`<div class="tt-col" role="row"><div class="tt-d ${pd(t).getDay()===w?'today':''}" role="columnheader">${DOW[w]}</div>${on(w).map(c=>`<button class="tt-c ${c.to&&c.to<t?'ended':''}" data-a="editClass" data-id="${esc(c.id)}" role="cell"><b>${fmtTime(c.start)}</b><span>${esc(c.paper&&paperOf(c.paper)?paperOf(c.paper).code:c.title)}</span></button>`).join('')}</div>`).join('')}</div>`;
-  h+=`<div class="tt-list list">${order.filter(w=>on(w).length).map(w=>`<div class="wdh">${DOW[w]}${pd(t).getDay()===w?' · today':''}</div>${on(w).map(c=>classRow(c,null,{time:false})).join('')}`).join('')}</div>`;
+  h+=`<div class="card" style="margin-bottom:10px"><div class="split small"><span>${nx?`Next: <b>${esc(relDay(nx.d))} ${fmtTime(nx.c.start)}</b> · ${esc(nx.c.title)}`:'No classes in the next two weeks'}</span><span class="muted">${hrs(wk)}/week</span></div><div class="btns" style="margin-top:10px"><button class="btn sm" data-a="pastPick">✓ Past classes</button></div></div>`;
+  h+=`<div class="tt-grid card" role="table" aria-label="Weekly class timetable">${DAY_ORDER.map(w=>`<div class="tt-col" role="row"><div class="tt-d ${pd(t).getDay()===w?'today':''}" role="columnheader">${DOW[w]}</div>${occ(w).map(c=>`<button class="tt-c ${c.to&&c.to<t?'ended':''}" data-a="editClass" data-id="${esc(c.id)}" role="cell"><b>${fmtTime(c.start)}</b><span>${esc(c.paper&&paperOf(c.paper)?paperOf(c.paper).code:c.title)}</span></button>`).join('')}</div>`).join('')}</div>`;
+  h+=`<div class="tt-list list">${DAY_ORDER.filter(w=>occ(w).length).map(w=>`<div class="wdh">${DOW[w]}${pd(t).getDay()===w?' · today':''}</div>${occ(w).map(c=>classRow(c,null,{time:false})).join('')}`).join('')}</div>`;
   return h+'</section>'}
-function classSheet(c){const isNew=!c;c=Object.assign({id:'',paper:'',title:'',days:[],start:'19:00',end:'22:00',mode:'In person',where:'',tutor:'',from:'',to:''},c||{});
+const slotRow=s=>`<div class="slot"><select class="s_day" aria-label="Day">${DAY_ORDER.map(w=>`<option value="${w}" ${w===s.day?'selected':''}>${DOW[w]}</option>`).join('')}</select><input class="s_start" type="time" value="${esc(s.start)}" aria-label="Starts"><input class="s_end" type="time" value="${esc(s.end)}" aria-label="Ends"><button type="button" class="icon-btn" data-a="delSlot" aria-label="Remove this day">×</button></div>`;
+function classSheet(c){const isNew=!c;c=Object.assign({id:'',paper:'',title:'',mode:'In person',where:'',tutor:'',from:'',to:''},c||{});
+  const slots=c.id?sortSlots(slotsOf(c)):[{day:DAY_ORDER[(new Date().getDay()+6)%7],start:'19:00',end:'22:00'}];
   const papers=all('papers').filter(p=>!isDoneSubj(p)||p.id===c.paper);
   openSheet(`<h2 class="st" id="sheetTitle">${isNew?'Add a class':'Edit class'}</h2>
   ${papers.length?`<label class="f"><span>Subject</span><select id="c_paper"><option value="">— Not linked to a subject —</option>${papers.map(p=>paperOpt(p,c.paper)).join('')}</select></label>`:''}
   <label class="f"><span>Class name</span><input id="c_title" value="${esc(c.title)}" maxlength="80" placeholder="e.g. SBR lecture, AFM revision class"></label>
-  <label class="f"><span>Days</span><div class="seg" data-multi="days" role="group" aria-label="Days">${[1,2,3,4,5,6,0].map(w=>{const on=(c.days||[]).includes(w);return `<button type="button" data-a="dayT" data-v="${w}" class="${on?'on':''}" aria-pressed="${on}">${DOW[w]}</button>`}).join('')}</div></label>
-  <div class="grid2"><label class="f"><span>Starts</span><input id="c_start" type="time" value="${esc(c.start)}"></label><label class="f"><span>Ends</span><input id="c_end" type="time" value="${esc(c.end)}"></label></div>
+  <div class="f"><span class="fl">Days and times</span><div id="c_slots">${slots.map(slotRow).join('')}</div><button type="button" class="btn sm" data-a="addSlot" style="margin-top:8px">+ Add another day / time</button></div>
   <label class="f"><span>Mode</span>${segBtns('cmode',['In person','Online'],c.mode)}</label>
   <label class="f"><span>Where</span><input id="c_where" value="${esc(c.where)}" maxlength="300" placeholder="Room / centre, or a Zoom / Teams link"></label>
   <label class="f"><span>Tutor / provider</span><input id="c_tutor" value="${esc(c.tutor)}" maxlength="80" placeholder="e.g. Kaplan, BPP, Mr Lim"></label>
   <div class="grid2"><label class="f"><span>First class</span><input id="c_from" type="date" value="${esc(c.from)}"></label><label class="f"><span>Last class</span><input id="c_to" type="date" value="${esc(c.to)}"></label></div>
-  <p class="tiny muted">Leave the dates blank to repeat every week. Tap ✓ on a class after it starts to log its hours to Study.</p>
+  <p class="tiny muted">Leave the dates blank to repeat every week. Set the first class date to tick off classes you've already attended.</p>
+  ${isNew?'':`<button type="button" class="btn sm block" data-a="pastOpen" data-id="${esc(c.id)}" style="margin-top:12px">✓ Past classes you attended</button>`}
   <div class="foot">${isNew?'':`<button class="btn bad" data-a="delClass" data-id="${esc(c.id)}">Delete</button>`}<button class="btn pri" data-a="saveClass" data-id="${esc(c.id)}">Save</button></div>`)}
+/* ---------- past classes: tick off sessions you attended before today */
+function pastOcc(c,weeks){const t=todayS(),earliest=ymd(addDays(new Date(),-7*weeks)),from=c.from&&c.from>earliest?c.from:earliest,out=[];
+  for(let d=pd(t);ymd(d)>=from;d=addDays(d,-1)){const ds=ymd(d);classesOn(ds).filter(x=>x.id===c.id&&clsStarted(x,ds)).reverse().forEach(x=>out.push({c:x,d:ds}))}
+  return{list:out,more:!c.from?weeks<104:c.from<earliest}}
+function pastSheet(id){const c=CLS().find(x=>x.id===id);if(!c){closeSheet();return}
+  const wks=UI.pastWeeks||12,{list,more}=pastOcc(c,wks),att=list.filter(o=>attended(o.c,o.d)),mins=att.reduce((a,o)=>a+clsMins(o.c),0),p=c.paper&&paperOf(c.paper);
+  const keep=$('#sheet').classList.contains('open')&&UI.sheet&&UI.sheet.type==='past'?$('#sheet').scrollTop:0;
+  openSheet(`<h2 class="st" id="sheetTitle">Past classes · ${esc(c.title)}</h2>
+  <p class="muted small">Tick the classes you attended. Each one logs its hours to ${p?esc(p.code):'Study'}.</p>
+  ${list.length?`<div class="split small" style="margin:10px 0"><span><b>${att.length}</b> of ${list.length} attended · ${hrs(mins)} logged</span>${att.length<list.length?`<button class="btn sm" data-a="pastAll" data-id="${esc(c.id)}">Tick all</button>`:''}</div>
+  <div class="list">${list.map(o=>{const on=attended(o.c,o.d);return `<div class="row cls ${on?'att':''}" data-a="pastT" data-id="${esc(c.id)}" data-date="${o.d}" data-start="${esc(o.c.start)}" role="button" aria-pressed="${on}"><div class="grow"><div class="t-title small">${esc(relDay(o.d)==='Today'||relDay(o.d)==='Yesterday'?relDay(o.d)+' · '+fmtDate(o.d):fmtDate(o.d)+(pd(o.d).getFullYear()!==new Date().getFullYear()?' '+pd(o.d).getFullYear():''))}</div><div class="meta">${fmtTime(o.c.start)}–${fmtTime(o.c.end)} · ${hrs(clsMins(o.c))}</div></div><span class="check-wrap" aria-hidden="true"><span class="check">${CHECK}</span></span></div>`}).join('')}</div>
+  ${more?`<button class="btn sm block" data-a="pastMore" data-id="${esc(c.id)}" style="margin-top:8px">Show earlier classes</button>`:''}`
+  :`<div class="card small muted" style="margin-top:10px">No past sessions in the last ${wks} weeks${c.from?' since the first class date':''}. Set an earlier <b>First class</b> date in the class, or log a make-up class below.</div>`}
+  <h3>Make-up or extra class</h3>
+  <div class="grid3"><label class="f"><span>Date</span><input id="x_date" type="date" max="${todayS()}" value="${todayS()}"></label><label class="f"><span>Starts</span><input id="x_start" type="time" value="${esc(slotsOf(c)[0]?slotsOf(c)[0].start:'19:00')}"></label><label class="f"><span>Ends</span><input id="x_end" type="time" value="${esc(slotsOf(c)[0]?slotsOf(c)[0].end:'22:00')}"></label></div>
+  <button class="btn sm" data-a="pastExtra" data-id="${esc(c.id)}" style="margin-top:10px">+ Log this class</button>
+  <div class="foot"><button class="btn pri" data-a="closeSheet">Done</button></div>`);
+  UI.sheet={type:'past',id};if(keep)$('#sheet').scrollTop=keep}
 function timeline(d,opt={}){
   const evs=eventsOn(d),tasks=all('tasks').filter(t=>t.date===d),cls=classesOn(d);
   const allDay=evs.filter(e=>e.allDay);
@@ -1175,21 +1213,36 @@ async function restoreData(obj,source){
 const A={
   ext:()=>{}, // links: the click handler lets <a> elements open normally
   newClass:()=>classSheet(),editClass:d=>{const c=CLS().find(x=>x.id===d.id);if(c)classSheet(Object.assign({},c))},
-  dayT:(d,el)=>{const on=!el.classList.contains('on');el.classList.toggle('on',on);el.setAttribute('aria-pressed',on)},
+  addSlot:()=>{const box=$('#c_slots'),rows=box.querySelectorAll('.slot'),last=rows[rows.length-1];
+    const prev=last?{day:+last.querySelector('.s_day').value,start:last.querySelector('.s_start').value,end:last.querySelector('.s_end').value}:{day:1,start:'19:00',end:'22:00'};
+    box.insertAdjacentHTML('beforeend',slotRow({day:DAY_ORDER[(DAY_ORDER.indexOf(prev.day)+1)%7],start:prev.start,end:prev.end}))},
+  delSlot:(d,el)=>{const box=$('#c_slots');if(box.querySelectorAll('.slot').length<2){toast('A class needs at least one day');return}el.closest('.slot').remove()},
   saveClass:d=>{
-    const days=[...document.querySelectorAll('[data-multi=days] .on')].map(b=>+b.dataset.v),start=val('c_start'),end=val('c_end'),paper=val('c_paper'),p=paper&&paperOf(paper);
-    const title=val('c_title')||(p?`${p.code} class`:'');
-    if(!title){toast('Give the class a name');return}if(!days.length){toast('Pick at least one day');return}
-    if(!start||!end||end<=start){toast('End time must be after the start time');return}
+    const rows=[...document.querySelectorAll('#c_slots .slot')].map(r=>({day:+r.querySelector('.s_day').value,start:r.querySelector('.s_start').value,end:r.querySelector('.s_end').value}));
+    const paper=val('c_paper'),p=paper&&paperOf(paper),title=val('c_title')||(p?`${p.code} class`:'');
+    if(!title){toast('Give the class a name');return}if(!rows.length){toast('Add at least one day');return}
+    const bad=rows.find(r=>!r.start||!r.end||r.end<=r.start);if(bad){toast(`${DOW[bad.day]}: end time must be after the start time`);return}
+    const seen=new Set(),slots=sortSlots(rows.filter(r=>{const k=r.day+'|'+r.start;if(seen.has(k))return false;seen.add(k);return true}));
     const from=val('c_from'),to=val('c_to');if(from&&to&&to<from){toast('Last class is before the first class');return}
-    const c={id:d.id||uid(),paper,title,days,start,end,mode:segVal('cmode')||'In person',where:val('c_where'),tutor:val('c_tutor'),from,to};
-    META.prefs.classes=CLS().filter(x=>x.id!==c.id).concat(c);savePrefs();closeSheet();render();toast(d.id?'Class updated':'🎓 Class added')},
+    const c={id:d.id||uid(),paper,title,slots,mode:segVal('cmode')||'In person',where:val('c_where'),tutor:val('c_tutor'),from,to};
+    META.prefs.classes=CLS().filter(x=>x.id!==c.id).concat(c);savePrefs();render();
+    if(!d.id&&from&&from<todayS()){UI.pastWeeks=Math.min(104,Math.ceil(dayDiff(todayS(),from)/7)+1);pastSheet(c.id);toast('🎓 Class added — tick the ones you attended')}
+    else{closeSheet();toast(d.id?'Class updated':'🎓 Class added')}},
   delClass:d=>{if(!confirm('Delete this class from your timetable? Hours already logged stay in Study.'))return;META.prefs.classes=CLS().filter(x=>x.id!==d.id);savePrefs();closeSheet();render();toast('Class deleted')},
-  attend:d=>{const c=CLS().find(x=>x.id===d.id);if(!c)return;const id=clsSid(c,d.date);
-    if(attended(c,d.date)){remove('sessions',id);toast('Attendance removed');return}
-    const p=c.paper&&paperOf(c.paper),m=clsMins(c);buzz(8);
-    put('sessions',{id,title:`${p?p.code:c.title} · class · ${m} min`,paper:c.paper||'',topic:'',date:d.date,mins:m,kind:'Class',note:c.title,deleted:false});
-    toast(`🎓 ${hrs(m)} class logged${p?' to '+p.code:''} · +${Math.round(m/2)} XP`)},
+  attend:d=>{const c=classesOn(d.date).find(x=>x.id===d.id&&x.start===d.start);if(!c)return;
+    if(attended(c,d.date)){setAttended(c,d.date,false);render();toast('Attendance removed');return}
+    setAttended(c,d.date,true);buzz(8);render();const p=c.paper&&paperOf(c.paper),m=clsMins(c);toast(`🎓 ${hrs(m)} class logged${p?' to '+p.code:''} · +${Math.round(m/2)} XP`)},
+  pastPick:()=>{const cl=CLS();if(cl.length===1){UI.pastWeeks=12;pastSheet(cl[0].id);return}
+    openSheet(`<h2 class="st" id="sheetTitle">Past classes</h2><p class="muted small">Pick a class to tick off the sessions you attended.</p><div class="list">${cl.map(c=>`<div class="row" data-a="pastOpen" data-id="${esc(c.id)}"><div class="grow"><div class="t-title">🎓 ${esc(c.title)}</div><div class="meta">${sortSlots(slotsOf(c)).map(s=>`${DOW[s.day]} ${fmtTime(s.start)}`).join(' · ')}</div></div><span class="muted">›</span></div>`).join('')}</div>`)},
+  pastOpen:d=>{UI.pastWeeks=12;pastSheet(d.id)},
+  pastMore:d=>{UI.pastWeeks=Math.min(104,(UI.pastWeeks||12)+12);pastSheet(d.id)},
+  pastT:d=>{const c=classesOn(d.date).find(x=>x.id===d.id&&x.start===d.start);if(!c)return;setAttended(c,d.date,!attended(c,d.date));buzz(8);render();pastSheet(d.id)},
+  pastAll:d=>{const c=CLS().find(x=>x.id===d.id);if(!c)return;const {list}=pastOcc(c,UI.pastWeeks||12),todo=list.filter(o=>!attended(o.c,o.d));
+    todo.forEach(o=>setAttended(o.c,o.d,true));render();pastSheet(d.id);toast(`🎓 ${todo.length} class${todo.length===1?'':'es'} logged · ${hrs(todo.reduce((a,o)=>a+clsMins(o.c),0))}`)},
+  pastExtra:d=>{const c0=CLS().find(x=>x.id===d.id);if(!c0)return;const date=val('x_date'),start=val('x_start'),end=val('x_end');
+    if(!date||date>todayS()){toast('Pick a date up to today');return}if(!start||!end||end<=start){toast('End time must be after the start time');return}
+    const c=Object.assign({},c0,{start,end});if(attended(c,date)){toast('Already logged');return}
+    setAttended(c,date,true,'(make-up)');render();pastSheet(d.id);toast(`🎓 ${hrs(clsMins(c))} make-up class logged`)},
   tab:d=>{META.tab=d.tab;persist();render();scrollTo(0,0);$('#view').focus({preventScroll:true})},
   settings:()=>settingsSheet(),closeSheet,
   fab:()=>{const tb=META.tab;if(tb==='study')all('papers').length?logSheet():paperSheet();else if(tb==='close')closeItemSheet();else if(tb==='habits')habitSheet();else taskSheet({date:tb==='plan'?UI.planDay:todayS()})},
