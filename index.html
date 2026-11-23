@@ -197,6 +197,7 @@ label.f>span{display:block;font-size:12.5px;color:var(--mute);margin-bottom:5px;
 .slot{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 36px;gap:6px;align-items:center;padding:8px;margin-top:6px;border:1px solid var(--line);border-radius:12px}
 .slot .s_day{grid-column:1/3}.slot .icon-btn{grid-column:3;grid-row:1;width:36px;height:40px}.slot .s_start{grid-column:1}.slot .s_end{grid-column:2}
 @media(min-width:600px){.slot{grid-template-columns:110px minmax(0,1fr) minmax(0,1fr) 36px;border:0;padding:0}.slot .s_day,.slot .s_start,.slot .s_end,.slot .icon-btn{grid-column:auto;grid-row:auto}}
+.wk{margin-top:14px;border:1px solid var(--line);border-radius:12px;padding:10px 12px}.wk summary{cursor:pointer;font-size:13.5px;font-weight:600;color:var(--mute)}.wk[open] summary{color:var(--text)}
 .grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .f>.fl{display:block;font-size:12.5px;color:var(--mute);margin-bottom:5px;font-weight:600}div.f{margin:12px 0 0}
 .cls.att .check{background:var(--study);border-color:var(--study)}.cls.att .check svg{opacity:1}
@@ -292,7 +293,7 @@ label.f>span{display:block;font-size:12.5px;color:var(--mute);margin-bottom:5px;
 <script>
 'use strict';
 /* ================================================================ basics */
-const APP_VERSION='2.7.0';
+const APP_VERSION='2.9.0';
 const APP_TITLE='Flow — Today, Plan, Study, Close & Habits';
 const $=(s,r=document)=>r.querySelector(s);
 const pad=n=>String(n).padStart(2,'0');
@@ -665,7 +666,7 @@ function timetableHTML(){const cl=CLS(),t=todayS();
   const nx=nextClass(),occ=w=>cl.flatMap(c=>slotsOf(c).filter(s=>s.day===w).map(s=>Object.assign({},c,{start:s.start,end:s.end}))).sort((a,b)=>a.start.localeCompare(b.start));
   const wk=cl.filter(c=>!c.to||c.to>=t).reduce((a,c)=>a+slotsOf(c).reduce((x,s)=>x+clsMins(s),0),0);
   let h=`<section aria-labelledby="h-tt"><h2 id="h-tt">🗓 Class timetable<button class="act" data-a="newClass">+ Add</button></h2>`;
-  h+=`<div class="card" style="margin-bottom:10px"><div class="split small"><span>${nx?`Next: <b>${esc(relDay(nx.d))} ${fmtTime(nx.c.start)}</b> · ${esc(nx.c.title)}`:'No classes in the next two weeks'}</span><span class="muted">${hrs(wk)}/week</span></div><div class="btns" style="margin-top:10px"><button class="btn sm" data-a="pastPick">✓ Past classes</button></div></div>`;
+  h+=`<div class="card" style="margin-bottom:10px"><div class="split small"><span>${nx?`Next: <b>${esc(relDay(nx.d))} ${fmtTime(nx.c.start)}</b> · ${esc(nx.c.title)}`:'No classes in the next two weeks'}</span><span class="muted">${hrs(wk)}/week</span></div><div class="btns" style="margin-top:10px"><button class="btn sm" data-a="pastPick">✓ Past classes</button><button class="btn sm" data-a="logPastClass">+ Log a past class</button><button class="btn sm" data-a="calAdd">📅 Add to calendar</button></div></div>`;
   h+=`<div class="tt-grid card" role="table" aria-label="Weekly class timetable">${DAY_ORDER.map(w=>`<div class="tt-col" role="row"><div class="tt-d ${pd(t).getDay()===w?'today':''}" role="columnheader">${DOW[w]}</div>${occ(w).map(c=>`<button class="tt-c ${c.to&&c.to<t?'ended':''}" data-a="editClass" data-id="${esc(c.id)}" role="cell"><b>${fmtTime(c.start)}</b><span>${esc(c.paper&&paperOf(c.paper)?paperOf(c.paper).code:c.title)}</span></button>`).join('')}</div>`).join('')}</div>`;
   h+=`<div class="tt-list list">${DAY_ORDER.filter(w=>occ(w).length).map(w=>`<div class="wdh">${DOW[w]}${pd(t).getDay()===w?' · today':''}</div>${occ(w).map(c=>classRow(c,null,{time:false})).join('')}`).join('')}</div>`;
   return h+'</section>'}
@@ -682,7 +683,7 @@ function classSheet(c){const isNew=!c;c=Object.assign({id:'',paper:'',title:'',m
   <label class="f"><span>Tutor / provider</span><input id="c_tutor" value="${esc(c.tutor)}" maxlength="80" placeholder="e.g. Kaplan, BPP, Mr Lim"></label>
   <div class="grid2"><label class="f"><span>First class</span><input id="c_from" type="date" value="${esc(c.from)}"></label><label class="f"><span>Last class</span><input id="c_to" type="date" value="${esc(c.to)}"></label></div>
   <p class="tiny muted">Leave the dates blank to repeat every week. Set the first class date to tick off classes you've already attended.</p>
-  ${isNew?'':`<button type="button" class="btn sm block" data-a="pastOpen" data-id="${esc(c.id)}" style="margin-top:12px">✓ Past classes you attended</button>`}
+  ${isNew?'':`<div class="btns" style="margin-top:12px"><button type="button" class="btn sm" data-a="pastOpen" data-id="${esc(c.id)}">✓ Past classes you attended</button><button type="button" class="btn sm" data-a="calAdd" data-id="${esc(c.id)}">📅 Add to calendar</button></div>`}
   <div class="foot">${isNew?'':`<button class="btn bad" data-a="delClass" data-id="${esc(c.id)}">Delete</button>`}<button class="btn pri" data-a="saveClass" data-id="${esc(c.id)}">Save</button></div>`)}
 /* ---------- past classes: tick off sessions you attended before today */
 function pastOcc(c,weeks){const t=todayS(),earliest=ymd(addDays(new Date(),-7*weeks)),from=c.from&&c.from>earliest?c.from:earliest,out=[];
@@ -702,6 +703,41 @@ function pastSheet(id){const c=CLS().find(x=>x.id===id);if(!c){closeSheet();retu
   <button class="btn sm" data-a="pastExtra" data-id="${esc(c.id)}" style="margin-top:10px">+ Log this class</button>
   <div class="foot"><button class="btn pri" data-a="closeSheet">Done</button></div>`);
   UI.sheet={type:'past',id};if(keep)$('#sheet').scrollTop=keep}
+/* ---------- add classes to an outside calendar (.ics file + Google Calendar links) */
+const ICS_DAY=['SU','MO','TU','WE','TH','FR','SA'];
+const tzName=()=>{try{return Intl.DateTimeFormat().resolvedOptions().timeZone||''}catch(e){return''}};
+const icsEsc=v=>String(v||'').replace(/\\/g,'\\\\').replace(/;/g,'\;').replace(/,/g,'\\,').replace(/\r?\n/g,'\\n');
+// iCalendar lines must be folded at 75 bytes (UTF-8), continuation lines start with a space
+function icsFold(line){const enc=new TextEncoder();let out='',cur='',n=0;for(const ch of line){const b=enc.encode(ch).length;if(n+b>(out?74:75)){out+=(out?'\r\n ':'')+cur;cur='';n=0}cur+=ch;n+=b}return out+(out?'\r\n ':'')+cur}
+const icsLocal=(d,t)=>d.replace(/-/g,'')+'T'+t.replace(':','')+'00';
+const utcStamp=dt=>dt.toISOString().replace(/[-:]/g,'').replace(/\.\d+Z$/,'Z');
+// first date on/after `from` that falls on weekday `day`
+function firstOn(day,from){let d=pd(from);for(let i=0;i<7;i++){if(d.getDay()===day)return ymd(d);d=addDays(d,1)}return ymd(d)}
+function slotEvents(c){const start=c.from||todayS();return sortSlots(slotsOf(c)).map(s=>{const d=firstOn(s.day,start);if(c.to&&d>c.to)return null;
+  return{c,s,date:d,rrule:`FREQ=WEEKLY;BYDAY=${ICS_DAY[s.day]}${c.to?`;UNTIL=${c.to.replace(/-/g,'')}T235959Z`:''}`}}).filter(Boolean)}
+function clsDetails(c){const p=c.paper&&paperOf(c.paper);return [p?`${p.code} — ${p.title}`:'',c.tutor?`Tutor / provider: ${c.tutor}`:'',`Mode: ${c.mode||'In person'}`,isUrl(c.where)?`Join: ${c.where}`:'','Added from Flow'].filter(Boolean).join('\n')}
+function buildIcs(classes,remind){const tz=tzName(),now=utcStamp(new Date());
+  const L=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Flow//Class timetable//EN','CALSCALE:GREGORIAN','METHOD:PUBLISH','X-WR-CALNAME:Flow classes'];if(tz)L.push('X-WR-TIMEZONE:'+tz);
+  classes.forEach(c=>slotEvents(c).forEach(ev=>{const dt=v=>(tz?`;TZID=${tz}:`:':')+icsLocal(ev.date,v);
+    L.push('BEGIN:VEVENT',`UID:flow-${c.id}-${ev.s.day}-${ev.s.start.replace(':','')}@flow`,`DTSTAMP:${now}`,'DTSTART'+dt(ev.s.start),'DTEND'+dt(ev.s.end),`RRULE:${ev.rrule}`,
+      `SUMMARY:${icsEsc(c.title)}`,`DESCRIPTION:${icsEsc(clsDetails(c))}`);
+    if(c.where&&!isUrl(c.where))L.push(`LOCATION:${icsEsc(c.where)}`);if(isUrl(c.where))L.push(`URL:${c.where.replace(/[\r\n]/g,'')}`);
+    if(remind>0)L.push('BEGIN:VALARM','ACTION:DISPLAY',`DESCRIPTION:${icsEsc(c.title)}`,`TRIGGER:-PT${remind}M`,'END:VALARM');
+    L.push('END:VEVENT')}));
+  L.push('END:VCALENDAR');return L.map(icsFold).join('\r\n')+'\r\n'}
+function gcalLink(ev){const c=ev.c,q=new URLSearchParams({action:'TEMPLATE',text:c.title,dates:`${icsLocal(ev.date,ev.s.start)}/${icsLocal(ev.date,ev.s.end)}`,details:clsDetails(c),recur:'RRULE:'+ev.rrule});
+  if(tzName())q.set('ctz',tzName());if(c.where)q.set('location',c.where);return 'https://calendar.google.com/calendar/render?'+q.toString()}
+function calSheet(id){const cl=id?CLS().filter(c=>c.id===id):CLS().filter(c=>!c.to||c.to>=todayS());const evs=cl.flatMap(slotEvents);
+  openSheet(`<h2 class="st" id="sheetTitle">📅 Add to your calendar</h2>
+  <p class="muted small">Adds ${id?'this class':'your classes'} as weekly repeating events${evs.length?` (${evs.length} weekly slot${evs.length===1?'':'s'})`:''}, each day at its own time${cl.some(c=>c.to)?' and ending on the last class date':''}.</p>
+  ${evs.length?`<label class="f"><span>Reminder before each class</span>${segBtns('calrem',['None','15 min','30 min','1 hour'],'30 min')}</label>
+  <button class="btn pri block" data-a="calIcs" data-id="${esc(id||'')}" style="margin-top:14px">⬇ Download calendar file (.ics)</button>
+  <p class="tiny muted">Works with Apple Calendar, Google Calendar and Outlook. On iPhone/iPad tap the file, then <b>Add All</b>. On a computer, open <a href="https://calendar.google.com/calendar/r/settings/export" target="_blank" rel="noopener noreferrer" data-a="ext" style="color:var(--acc)">Google Calendar → Settings → Import</a> and choose the file.</p>
+  <h3>Or add straight to Google Calendar</h3><p class="tiny muted" style="margin-top:0">Opens Google Calendar (web or app) with the class filled in and repeating weekly; tap <b>Save</b>. One link per day/time.</p>
+  <div class="list">${evs.map(ev=>`<a class="row" data-a="ext" href="${esc(gcalLink(ev))}" target="_blank" rel="noopener noreferrer" style="color:inherit;text-decoration:none"><div class="grow"><div class="t-title small">${esc(ev.c.title)}</div><div class="meta">Every ${DOW[ev.s.day]} · ${fmtTime(ev.s.start)}–${fmtTime(ev.s.end)} · from ${fmtDate(ev.date)}</div></div><span class="btn sm">Add →</span></a>`).join('')}</div>
+  <p class="tiny muted">Changed a class later? Delete the old events in your calendar and add them again.</p>`
+  :'<div class="card small muted" style="margin-top:10px">No current classes to add — every class here has already ended.</div>'}
+  <div class="foot"><button class="btn" data-a="closeSheet">Done</button></div>`)}
 function timeline(d,opt={}){
   const evs=eventsOn(d),tasks=all('tasks').filter(t=>t.date===d),cls=classesOn(d);
   const allDay=evs.filter(e=>e.allDay);
@@ -1102,15 +1138,29 @@ function savePaper(id){
   closeSheet();UI.openPaper=p.id;put('papers',p);toast('Saved')}
 const topicOpts=(pid,sel)=>`<option value="">General / no specific topic</option>`+subjTopics(pid).map(x=>`<option value="${esc(x.id)}" ${x.id===sel?'selected':''}>${esc(x.title)}</option>`).join('');
 function logTopics(){const s=$('#l_topic');if(s)s.innerHTML=topicOpts(val('l_paper'))}
-function logSheet(pid){let papers=all('papers').filter(p=>!isDoneSubj(p)||p.id===pid);if(!papers.length)papers=all('papers');
-  const sel=papers.some(p=>p.id===pid)?pid:papers[0].id;
-  openSheet(`<h2 class="st" id="sheetTitle">Log study time</h2>
+function logSheet(pid,opt={}){let papers=all('papers').filter(p=>!isDoneSubj(p)||p.id===pid);if(!papers.length)papers=all('papers');
+  if(!papers.length){toast('Add a subject in Study first');return}
+  const sel=papers.some(p=>p.id===pid)?pid:papers[0].id,cls=opt.kind==='Class';
+  openSheet(`<h2 class="st" id="sheetTitle">${cls?'Log a past class':'Log study time'}</h2>
+  <label class="f"><span>Type</span>${segBtns('ltype',['Self-study','Class'],cls?'Class':'Self-study')}</label>
   <label class="f"><span>Subject</span><select id="l_paper">${papers.map(p=>paperOpt(p,sel)).join('')}</select></label>
   <label class="f"><span>Topic</span><select id="l_topic">${topicOpts(sel)}</select></label>
-  <div class="grid2"><label class="f"><span>Date</span><input id="l_date" type="date" value="${todayS()}" max="${todayS()}"></label><label class="f"><span>Minutes</span><input id="l_mins" type="number" inputmode="numeric" min="1" max="720" value="60"></label></div>
+  <div class="grid2"><label class="f"><span>Date</span><input id="l_date" type="date" value="${todayS()}" max="${todayS()}"></label><label class="f"><span>Minutes</span><input id="l_mins" type="number" inputmode="numeric" min="1" max="720" value="${cls?180:60}"></label></div>
   <div class="seg" style="margin-top:10px">${[30,60,90,120,180].map(m=>`<button type="button" data-a="setMins" data-m="${m}">${hrs(m)}</button>`).join('')}</div>
-  <label class="f"><span>What did you cover? (optional)</span><input id="l_note" maxlength="200" placeholder="e.g. Past paper Q3, chapter 4, built a pivot table"></label>
+  <div class="grid2"><label class="f"><span>From (optional)</span><input id="l_start" type="time"></label><label class="f"><span>To (optional)</span><input id="l_end" type="time"></label></div>
+  <p class="tiny muted" style="margin:6px 0 0">Enter a start and end time and the minutes are worked out for you.</p>
+  <label class="f"><span>What did you cover? (optional)</span><input id="l_note" maxlength="200" placeholder="${cls?'e.g. SBR lecture — IFRS 16, Kaplan':'e.g. Past paper Q3, chapter 4, built a pivot table'}"></label>
+  <details class="wk" ${cls?'open':''}><summary>Same ${cls?'class':'session'} every week, going back</summary>
+    <label class="f"><span>Every week back to</span><input id="l_from" type="date" max="${todayS()}"></label>
+    <p class="tiny muted" id="l_wkinfo" style="margin:6px 0 0">Logs the same weekday and minutes every week from this date up to the date above — handy for a course you've already done.</p></details>
   <div class="foot"><button class="btn pri" data-a="saveLog">Save</button></div>`)}
+// dates for "every week back to": same weekday as `to`, stepping back 7 days, not before `from`
+function weeklyDates(from,to){const out=[];if(!to)return out;if(!from||from>to)return[to];for(let d=pd(to);ymd(d)>=from&&out.length<104;d=addDays(d,-7))out.push(ymd(d));return out}
+function logPreview(){const el=$('#l_wkinfo');if(!el)return;const from=val('l_from'),to=val('l_date'),m=+val('l_mins')||0;
+  if(!from){el.textContent="Logs the same weekday and minutes every week from this date up to the date above — handy for a course you've already done.";return}
+  if(from>to){el.textContent='Pick a date before the date above.';return}
+  const ds=weeklyDates(from,to);el.innerHTML=`Will log <b>${ds.length}</b> session${ds.length===1?'':'s'} (every ${DOW[pd(to).getDay()]}, ${fmtDate(ds[ds.length-1])} – ${fmtDate(to)}) · <b>${hrs(ds.length*m)}</b> in total.`}
+function logTimes(){const a=val('l_start'),b=val('l_end');if(a&&b&&b>a)$('#l_mins').value=tToMin(b)-tToMin(a);logPreview()}
 function topicsSheet(pid){const p=paperOf(pid),K=KINDS[kindOf(p)];
   openSheet(`<h2 class="st" id="sheetTitle">Add topics · ${esc(p.code)}</h2><p class="muted small">One per line — ${K.exam?'syllabus sections from your study text':'topics, chapters or milestones'}.</p>
   <label class="f"><span>Topics</span><textarea id="t_lines" rows="8" autofocus placeholder="${p.code==='SBR'?'Group accounting\nIFRS 9 Financial instruments\nIFRS 15 Revenue\nIFRS 16 Leases\nEthics':esc(K.topicsPh)}"></textarea></label>
@@ -1235,6 +1285,11 @@ const A={
   pastPick:()=>{const cl=CLS();if(cl.length===1){UI.pastWeeks=12;pastSheet(cl[0].id);return}
     openSheet(`<h2 class="st" id="sheetTitle">Past classes</h2><p class="muted small">Pick a class to tick off the sessions you attended.</p><div class="list">${cl.map(c=>`<div class="row" data-a="pastOpen" data-id="${esc(c.id)}"><div class="grow"><div class="t-title">🎓 ${esc(c.title)}</div><div class="meta">${sortSlots(slotsOf(c)).map(s=>`${DOW[s.day]} ${fmtTime(s.start)}`).join(' · ')}</div></div><span class="muted">›</span></div>`).join('')}</div>`)},
   pastOpen:d=>{UI.pastWeeks=12;pastSheet(d.id)},
+  calAdd:d=>calSheet(d.id||''),
+  logPastClass:()=>{const c=CLS().find(c=>c.paper&&paperOf(c.paper));logSheet(c?c.paper:'',{kind:'Class'})},
+  calIcs:d=>{const cl=d.id?CLS().filter(c=>c.id===d.id):CLS().filter(c=>!c.to||c.to>=todayS()),rem={'None':0,'15 min':15,'30 min':30,'1 hour':60}[segVal('calrem')]??30;
+    const name=d.id&&cl[0]?`flow-${cl[0].title.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'class'}.ics`:'flow-classes.ics';
+    download(name,buildIcs(cl,rem),'text/calendar;charset=utf-8');toast('📅 Calendar file downloaded — open it to add your classes')},
   pastMore:d=>{UI.pastWeeks=Math.min(104,(UI.pastWeeks||12)+12);pastSheet(d.id)},
   pastT:d=>{const c=classesOn(d.date).find(x=>x.id===d.id&&x.start===d.start);if(!c)return;setAttended(c,d.date,!attended(c,d.date));buzz(8);render();pastSheet(d.id)},
   pastAll:d=>{const c=CLS().find(x=>x.id===d.id);if(!c)return;const {list}=pastOcc(c,UI.pastWeeks||12),todo=list.filter(o=>!attended(o.c,o.d));
@@ -1269,8 +1324,13 @@ const A={
   stopTimer:()=>{const T=META.timer;if(!T)return;META.timerNext=null;const done=Math.floor((T.dur*6e4-timerLeft())/6e4);
     if(T.mode==='focus'&&T.paper&&done>=5&&confirm(`Log the ${done} minutes you did?`))finishTimer(done);else{META.timer=null;document.title=APP_TITLE;persist();render()}},
   studyNow:d=>{closeSheet();META.lastTimerPaper=d.id;startFocus(POMO().focus,d.id,d.topic||'',1);scrollTo(0,0)},
-  logStudy:d=>logSheet(d.id),setMins:d=>{$('#l_mins').value=d.m},
-  saveLog:()=>{const pid=val('l_paper'),m=+val('l_mins'),topic=val('l_topic'),note=val('l_note');if(!m||m<1){toast('Enter minutes');return}const p=paperOf(pid);closeSheet();put('sessions',{id:uid(),title:`${p?p.code:'Study'} · ${m} min`,paper:pid,topic,note,date:val('l_date')||todayS(),mins:m,kind:'Manual'});toast(`Logged ${hrs(m)} · +${Math.round(m/2)} XP`)},
+  logStudy:d=>logSheet(d.id),setMins:d=>{$('#l_mins').value=d.m;logPreview()},
+  saveLog:()=>{const pid=val('l_paper'),m=+val('l_mins'),topic=val('l_topic'),note=val('l_note'),date=val('l_date')||todayS(),from=val('l_from'),cls=segVal('ltype')==='Class';
+    if(!m||m<1||m>720){toast('Enter minutes (1–720)');return}if(date>todayS()){toast('Pick a date up to today');return}if(from&&from>date){toast('"Every week back to" must be before the date');return}
+    const a=val('l_start'),b=val('l_end');if(a&&b&&b<=a){toast('End time must be after the start time');return}
+    const p=paperOf(pid),dates=from?weeklyDates(from,date):[date];closeSheet();
+    dates.forEach(d=>put('sessions',{id:uid(),title:`${p?p.code:'Study'}${cls?' · class':''} · ${m} min`,paper:pid,topic,note,date:d,mins:m,kind:cls?'Class':'Manual'},{silent:true}));render();
+    toast(dates.length>1?`${cls?'🎓':'✅'} Logged ${dates.length} ${cls?'classes':'sessions'} · ${hrs(m*dates.length)} · +${Math.round(m*dates.length/2)} XP`:`${cls?'🎓 Class logged':'Logged'} ${hrs(m)} · +${Math.round(m/2)} XP`)},
   blockStudy:d=>{const p=paperOf(d.id);taskSheet({title:`${kindOf(p)==='Book'?'Read':'Study'} ${p.code}`,area:kindOf(p)==='ACCA'?'ACCA':'Personal',paper:d.id,date:ymd(addDays(new Date(),1)),time:'20:30',dur:90,cal:connected()})},
   delSession:d=>{if(confirm('Delete this study session?'))remove('sessions',d.id)},
   newPaper:d=>paperSheet(null,d.kind),skind:d=>{const dr=sheetSubjectDraft(d.id,d.v);if(!d.id&&val('p_kind')==='ACCA'&&d.v!=='ACCA'&&dr.target==='150')dr.target='';paperSheet(dr)},studyKind:d=>{UI.studyKind=d.v;render()},showDone:()=>{UI.showDone=!UI.showDone;render()},editPaper:d=>paperSheet(Object.assign({},DB.papers[d.id])),savePaper:d=>savePaper(d.id),
@@ -1361,7 +1421,8 @@ document.addEventListener('submit',e=>{
   toast(`Added for ${relDay(p.date).toLowerCase()}${p.time?' at '+fmtTime(p.time):''}`);
   setTimeout(()=>{const i=$('#'+f.querySelector('input').id);if(i)i.focus()},30);
 });
-document.addEventListener('change',e=>{if(e.target.id==='l_paper')logTopics()});
+document.addEventListener('change',e=>{const id=e.target.id;if(id==='l_paper')logTopics();else if(id==='l_start'||id==='l_end')logTimes();else if(id==='l_from'||id==='l_date'||id==='l_mins')logPreview()});
+document.addEventListener('input',e=>{if(e.target.id==='l_mins')logPreview()});
 $('#fileIn').addEventListener('change',async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;
   if(f.size>20e6){toast('File too large');return}
   try{await restoreData(JSON.parse(await f.text()),f.name)}catch(err){log('error','import','Import failed: '+f.name,err.message);toast('Import failed: '+err.message,4000)}});
