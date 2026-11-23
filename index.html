@@ -292,7 +292,7 @@ label.f>span{display:block;font-size:12.5px;color:var(--mute);margin-bottom:5px;
 <script>
 'use strict';
 /* ================================================================ basics */
-const APP_VERSION='2.7.0';
+const APP_VERSION='2.8.0';
 const APP_TITLE='Flow — Today, Plan, Study, Close & Habits';
 const $=(s,r=document)=>r.querySelector(s);
 const pad=n=>String(n).padStart(2,'0');
@@ -665,7 +665,7 @@ function timetableHTML(){const cl=CLS(),t=todayS();
   const nx=nextClass(),occ=w=>cl.flatMap(c=>slotsOf(c).filter(s=>s.day===w).map(s=>Object.assign({},c,{start:s.start,end:s.end}))).sort((a,b)=>a.start.localeCompare(b.start));
   const wk=cl.filter(c=>!c.to||c.to>=t).reduce((a,c)=>a+slotsOf(c).reduce((x,s)=>x+clsMins(s),0),0);
   let h=`<section aria-labelledby="h-tt"><h2 id="h-tt">🗓 Class timetable<button class="act" data-a="newClass">+ Add</button></h2>`;
-  h+=`<div class="card" style="margin-bottom:10px"><div class="split small"><span>${nx?`Next: <b>${esc(relDay(nx.d))} ${fmtTime(nx.c.start)}</b> · ${esc(nx.c.title)}`:'No classes in the next two weeks'}</span><span class="muted">${hrs(wk)}/week</span></div><div class="btns" style="margin-top:10px"><button class="btn sm" data-a="pastPick">✓ Past classes</button></div></div>`;
+  h+=`<div class="card" style="margin-bottom:10px"><div class="split small"><span>${nx?`Next: <b>${esc(relDay(nx.d))} ${fmtTime(nx.c.start)}</b> · ${esc(nx.c.title)}`:'No classes in the next two weeks'}</span><span class="muted">${hrs(wk)}/week</span></div><div class="btns" style="margin-top:10px"><button class="btn sm" data-a="pastPick">✓ Past classes</button><button class="btn sm" data-a="calAdd">📅 Add to calendar</button></div></div>`;
   h+=`<div class="tt-grid card" role="table" aria-label="Weekly class timetable">${DAY_ORDER.map(w=>`<div class="tt-col" role="row"><div class="tt-d ${pd(t).getDay()===w?'today':''}" role="columnheader">${DOW[w]}</div>${occ(w).map(c=>`<button class="tt-c ${c.to&&c.to<t?'ended':''}" data-a="editClass" data-id="${esc(c.id)}" role="cell"><b>${fmtTime(c.start)}</b><span>${esc(c.paper&&paperOf(c.paper)?paperOf(c.paper).code:c.title)}</span></button>`).join('')}</div>`).join('')}</div>`;
   h+=`<div class="tt-list list">${DAY_ORDER.filter(w=>occ(w).length).map(w=>`<div class="wdh">${DOW[w]}${pd(t).getDay()===w?' · today':''}</div>${occ(w).map(c=>classRow(c,null,{time:false})).join('')}`).join('')}</div>`;
   return h+'</section>'}
@@ -682,7 +682,7 @@ function classSheet(c){const isNew=!c;c=Object.assign({id:'',paper:'',title:'',m
   <label class="f"><span>Tutor / provider</span><input id="c_tutor" value="${esc(c.tutor)}" maxlength="80" placeholder="e.g. Kaplan, BPP, Mr Lim"></label>
   <div class="grid2"><label class="f"><span>First class</span><input id="c_from" type="date" value="${esc(c.from)}"></label><label class="f"><span>Last class</span><input id="c_to" type="date" value="${esc(c.to)}"></label></div>
   <p class="tiny muted">Leave the dates blank to repeat every week. Set the first class date to tick off classes you've already attended.</p>
-  ${isNew?'':`<button type="button" class="btn sm block" data-a="pastOpen" data-id="${esc(c.id)}" style="margin-top:12px">✓ Past classes you attended</button>`}
+  ${isNew?'':`<div class="btns" style="margin-top:12px"><button type="button" class="btn sm" data-a="pastOpen" data-id="${esc(c.id)}">✓ Past classes you attended</button><button type="button" class="btn sm" data-a="calAdd" data-id="${esc(c.id)}">📅 Add to calendar</button></div>`}
   <div class="foot">${isNew?'':`<button class="btn bad" data-a="delClass" data-id="${esc(c.id)}">Delete</button>`}<button class="btn pri" data-a="saveClass" data-id="${esc(c.id)}">Save</button></div>`)}
 /* ---------- past classes: tick off sessions you attended before today */
 function pastOcc(c,weeks){const t=todayS(),earliest=ymd(addDays(new Date(),-7*weeks)),from=c.from&&c.from>earliest?c.from:earliest,out=[];
@@ -702,6 +702,41 @@ function pastSheet(id){const c=CLS().find(x=>x.id===id);if(!c){closeSheet();retu
   <button class="btn sm" data-a="pastExtra" data-id="${esc(c.id)}" style="margin-top:10px">+ Log this class</button>
   <div class="foot"><button class="btn pri" data-a="closeSheet">Done</button></div>`);
   UI.sheet={type:'past',id};if(keep)$('#sheet').scrollTop=keep}
+/* ---------- add classes to an outside calendar (.ics file + Google Calendar links) */
+const ICS_DAY=['SU','MO','TU','WE','TH','FR','SA'];
+const tzName=()=>{try{return Intl.DateTimeFormat().resolvedOptions().timeZone||''}catch(e){return''}};
+const icsEsc=v=>String(v||'').replace(/\\/g,'\\\\').replace(/;/g,'\;').replace(/,/g,'\\,').replace(/\r?\n/g,'\\n');
+// iCalendar lines must be folded at 75 bytes (UTF-8), continuation lines start with a space
+function icsFold(line){const enc=new TextEncoder();let out='',cur='',n=0;for(const ch of line){const b=enc.encode(ch).length;if(n+b>(out?74:75)){out+=(out?'\r\n ':'')+cur;cur='';n=0}cur+=ch;n+=b}return out+(out?'\r\n ':'')+cur}
+const icsLocal=(d,t)=>d.replace(/-/g,'')+'T'+t.replace(':','')+'00';
+const utcStamp=dt=>dt.toISOString().replace(/[-:]/g,'').replace(/\.\d+Z$/,'Z');
+// first date on/after `from` that falls on weekday `day`
+function firstOn(day,from){let d=pd(from);for(let i=0;i<7;i++){if(d.getDay()===day)return ymd(d);d=addDays(d,1)}return ymd(d)}
+function slotEvents(c){const start=c.from||todayS();return sortSlots(slotsOf(c)).map(s=>{const d=firstOn(s.day,start);if(c.to&&d>c.to)return null;
+  return{c,s,date:d,rrule:`FREQ=WEEKLY;BYDAY=${ICS_DAY[s.day]}${c.to?`;UNTIL=${c.to.replace(/-/g,'')}T235959Z`:''}`}}).filter(Boolean)}
+function clsDetails(c){const p=c.paper&&paperOf(c.paper);return [p?`${p.code} — ${p.title}`:'',c.tutor?`Tutor / provider: ${c.tutor}`:'',`Mode: ${c.mode||'In person'}`,isUrl(c.where)?`Join: ${c.where}`:'','Added from Flow'].filter(Boolean).join('\n')}
+function buildIcs(classes,remind){const tz=tzName(),now=utcStamp(new Date());
+  const L=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Flow//Class timetable//EN','CALSCALE:GREGORIAN','METHOD:PUBLISH','X-WR-CALNAME:Flow classes'];if(tz)L.push('X-WR-TIMEZONE:'+tz);
+  classes.forEach(c=>slotEvents(c).forEach(ev=>{const dt=v=>(tz?`;TZID=${tz}:`:':')+icsLocal(ev.date,v);
+    L.push('BEGIN:VEVENT',`UID:flow-${c.id}-${ev.s.day}-${ev.s.start.replace(':','')}@flow`,`DTSTAMP:${now}`,'DTSTART'+dt(ev.s.start),'DTEND'+dt(ev.s.end),`RRULE:${ev.rrule}`,
+      `SUMMARY:${icsEsc(c.title)}`,`DESCRIPTION:${icsEsc(clsDetails(c))}`);
+    if(c.where&&!isUrl(c.where))L.push(`LOCATION:${icsEsc(c.where)}`);if(isUrl(c.where))L.push(`URL:${c.where.replace(/[\r\n]/g,'')}`);
+    if(remind>0)L.push('BEGIN:VALARM','ACTION:DISPLAY',`DESCRIPTION:${icsEsc(c.title)}`,`TRIGGER:-PT${remind}M`,'END:VALARM');
+    L.push('END:VEVENT')}));
+  L.push('END:VCALENDAR');return L.map(icsFold).join('\r\n')+'\r\n'}
+function gcalLink(ev){const c=ev.c,q=new URLSearchParams({action:'TEMPLATE',text:c.title,dates:`${icsLocal(ev.date,ev.s.start)}/${icsLocal(ev.date,ev.s.end)}`,details:clsDetails(c),recur:'RRULE:'+ev.rrule});
+  if(tzName())q.set('ctz',tzName());if(c.where)q.set('location',c.where);return 'https://calendar.google.com/calendar/render?'+q.toString()}
+function calSheet(id){const cl=id?CLS().filter(c=>c.id===id):CLS().filter(c=>!c.to||c.to>=todayS());const evs=cl.flatMap(slotEvents);
+  openSheet(`<h2 class="st" id="sheetTitle">📅 Add to your calendar</h2>
+  <p class="muted small">Adds ${id?'this class':'your classes'} as weekly repeating events${evs.length?` (${evs.length} weekly slot${evs.length===1?'':'s'})`:''}, each day at its own time${cl.some(c=>c.to)?' and ending on the last class date':''}.</p>
+  ${evs.length?`<label class="f"><span>Reminder before each class</span>${segBtns('calrem',['None','15 min','30 min','1 hour'],'30 min')}</label>
+  <button class="btn pri block" data-a="calIcs" data-id="${esc(id||'')}" style="margin-top:14px">⬇ Download calendar file (.ics)</button>
+  <p class="tiny muted">Works with Apple Calendar, Google Calendar and Outlook. On iPhone/iPad tap the file, then <b>Add All</b>. On a computer, open <a href="https://calendar.google.com/calendar/r/settings/export" target="_blank" rel="noopener noreferrer" data-a="ext" style="color:var(--acc)">Google Calendar → Settings → Import</a> and choose the file.</p>
+  <h3>Or add straight to Google Calendar</h3><p class="tiny muted" style="margin-top:0">Opens Google Calendar (web or app) with the class filled in and repeating weekly; tap <b>Save</b>. One link per day/time.</p>
+  <div class="list">${evs.map(ev=>`<a class="row" data-a="ext" href="${esc(gcalLink(ev))}" target="_blank" rel="noopener noreferrer" style="color:inherit;text-decoration:none"><div class="grow"><div class="t-title small">${esc(ev.c.title)}</div><div class="meta">Every ${DOW[ev.s.day]} · ${fmtTime(ev.s.start)}–${fmtTime(ev.s.end)} · from ${fmtDate(ev.date)}</div></div><span class="btn sm">Add →</span></a>`).join('')}</div>
+  <p class="tiny muted">Changed a class later? Delete the old events in your calendar and add them again.</p>`
+  :'<div class="card small muted" style="margin-top:10px">No current classes to add — every class here has already ended.</div>'}
+  <div class="foot"><button class="btn" data-a="closeSheet">Done</button></div>`)}
 function timeline(d,opt={}){
   const evs=eventsOn(d),tasks=all('tasks').filter(t=>t.date===d),cls=classesOn(d);
   const allDay=evs.filter(e=>e.allDay);
@@ -1235,6 +1270,10 @@ const A={
   pastPick:()=>{const cl=CLS();if(cl.length===1){UI.pastWeeks=12;pastSheet(cl[0].id);return}
     openSheet(`<h2 class="st" id="sheetTitle">Past classes</h2><p class="muted small">Pick a class to tick off the sessions you attended.</p><div class="list">${cl.map(c=>`<div class="row" data-a="pastOpen" data-id="${esc(c.id)}"><div class="grow"><div class="t-title">🎓 ${esc(c.title)}</div><div class="meta">${sortSlots(slotsOf(c)).map(s=>`${DOW[s.day]} ${fmtTime(s.start)}`).join(' · ')}</div></div><span class="muted">›</span></div>`).join('')}</div>`)},
   pastOpen:d=>{UI.pastWeeks=12;pastSheet(d.id)},
+  calAdd:d=>calSheet(d.id||''),
+  calIcs:d=>{const cl=d.id?CLS().filter(c=>c.id===d.id):CLS().filter(c=>!c.to||c.to>=todayS()),rem={'None':0,'15 min':15,'30 min':30,'1 hour':60}[segVal('calrem')]??30;
+    const name=d.id&&cl[0]?`flow-${cl[0].title.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'class'}.ics`:'flow-classes.ics';
+    download(name,buildIcs(cl,rem),'text/calendar;charset=utf-8');toast('📅 Calendar file downloaded — open it to add your classes')},
   pastMore:d=>{UI.pastWeeks=Math.min(104,(UI.pastWeeks||12)+12);pastSheet(d.id)},
   pastT:d=>{const c=classesOn(d.date).find(x=>x.id===d.id&&x.start===d.start);if(!c)return;setAttended(c,d.date,!attended(c,d.date));buzz(8);render();pastSheet(d.id)},
   pastAll:d=>{const c=CLS().find(x=>x.id===d.id);if(!c)return;const {list}=pastOcc(c,UI.pastWeeks||12),todo=list.filter(o=>!attended(o.c,o.d));
