@@ -190,6 +190,7 @@ label.f>span{display:block;font-size:12.5px;color:var(--mute);margin-bottom:5px;
 .kpi span{font-size:11.5px;color:var(--mute)}
 .split{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
 .wdh{font-size:12px;color:var(--mute);padding:10px 12px 4px;font-weight:650;background:var(--card);border-bottom:1px solid var(--line)}
+.row.more{justify-content:center;width:100%;color:var(--acc);font-weight:600;font-size:13.5px}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 @media(max-width:360px){body{font-size:14px}.top h1{font-size:21px}.kpis{grid-template-columns:repeat(2,1fr)}.hgrid{grid-template-columns:minmax(0,1fr) repeat(7,28px);gap:3px}.hdot{width:28px;height:28px}.timer .tt{font-size:26px}.pill{max-width:38vw}}
 .tabs .brand,.tabs kbd,.tabs .side-extra,.side-open{display:none}
@@ -313,7 +314,7 @@ label.f>span{display:block;font-size:12.5px;color:var(--mute);margin-bottom:5px;
 'use strict';
 try{if(localStorage.getItem('flow.sideOff'))document.body.classList.add('side-off')}catch(e){}
 /* ================================================================ basics */
-const APP_VERSION='2.10.0';
+const APP_VERSION='2.10.1';
 const APP_TITLE='Flow — Today, Plan, Study, Close & Habits';
 const $=(s,r=document)=>r.querySelector(s);
 const pad=n=>String(n).padStart(2,'0');
@@ -373,9 +374,12 @@ window.addEventListener('error',e=>log('error','app',e.message||'Script error',`
 window.addEventListener('unhandledrejection',e=>log('error','app',(e.reason&&e.reason.message)||String(e.reason)));
 
 /* ================================================================ records */
-const all=col=>Object.values(DB[col]).filter(r=>!r.deleted);
-function put(col,rec,opt={}){rec.updated=Date.now();DB[col][rec.id]=rec;META.queue[col+':'+rec.id]=1;persist();scheduleSync(1500);if(!opt.silent)render()}
-function remove(col,id,opt={}){const r=DB[col][id];if(!r)return;
+// During a render the same lists are read many times; build each once and hand out copies.
+let ALLC=null;
+const all=col=>{if(!ALLC)return Object.values(DB[col]).filter(r=>!r.deleted);
+  return(ALLC[col]||(ALLC[col]=Object.values(DB[col]).filter(r=>!r.deleted))).slice()};
+function put(col,rec,opt={}){if(ALLC)ALLC={};rec.updated=Date.now();DB[col][rec.id]=rec;META.queue[col+':'+rec.id]=1;persist();scheduleSync(1500);if(!opt.silent)render()}
+function remove(col,id,opt={}){if(ALLC)ALLC={};const r=DB[col][id];if(!r)return;
   // never reached the server (local-only, or not pushed yet while disconnected): drop it outright instead of keeping a tombstone
   if(!connected()&&!r._pid){delete DB[col][id];delete META.queue[col+':'+id];persist();if(!opt.silent)render();return}
   r.deleted=true;put(col,r,opt)}
@@ -808,7 +812,7 @@ function vToday(){
   // Tasks
   const od=open.filter(x=>x.date<t),td=open.filter(x=>x.date===t&&!x.time);
   h+=`<section aria-labelledby="h-tasks"><h2 id="h-tasks">Tasks<button class="act" data-a="newTask" data-date="${t}">+ Add</button></h2>`;
-  if(od.length)h+=`<div class="list" style="margin-bottom:10px">${od.map(x=>taskRow(x)).join('')}</div>`;
+  if(od.length)h+=`<div class="list" style="margin-bottom:10px">${capList('todayOd',od,x=>taskRow(x))}</div>`;
   h+=td.length||doneToday.filter(x=>!x.time).length?`<div class="list">${[...td,...doneToday.filter(x=>!x.time)].map(x=>taskRow(x)).join('')}</div>`:(!od.length?`<div class="card muted small">No untimed tasks for today. 🎯</div>`:'');
   h+='</section>';
 
@@ -894,6 +898,9 @@ function habitTile(h,d){const on=habitDone(h.id,d),s=habitStreak(h);
 
 /* ================================================================ PLAN */
 function vPlan(){return vPlanBody()+`<section><div class="card row" data-a="openReview"><span style="font-size:22px" aria-hidden="true">📈</span><div class="grow"><div class="t-title">Weekly review</div><div class="meta">How your week went, and what to focus on next</div></div><span class="muted">›</span></div></section>`}
+// Long lists show the first 25 rows; the rest load on tap (keeps big backlogs fast).
+function capList(key,arr,fn,n=25){const open=UI.more&&UI.more[key],more=arr.length-n;
+  return(open||more<=0?arr:arr.slice(0,n)).map(fn).join('')+(more>0&&!open?`<button class="row more" data-a="showMore" data-k="${key}">Show ${more} more</button>`:'')}
 function vPlanBody(){
   const sel=UI.planDay,ws=weekStart(pd(sel)),t=todayS(),tasks=all('tasks');
   let h=`<section aria-labelledby="h-week"><h2 id="h-week" class="sr">Week</h2><div class="navrow"><button class="icon-btn" data-a="week" data-n="-7" aria-label="Previous week">‹</button><div class="grow" style="text-align:center;font-weight:650">${MONL[pd(sel).getMonth()]} ${pd(sel).getFullYear()}</div>${sel!==t?`<button class="btn sm" data-a="planDay" data-date="${t}">Today</button>`:''}<button class="icon-btn" data-a="week" data-n="7" aria-label="Next week">›</button></div><div class="week">`;
@@ -905,9 +912,9 @@ function vPlanBody(){
     <form class="quick" data-form="quick" data-date="${sel}" autocomplete="off" style="margin-bottom:10px"><label class="sr" for="qp">Quick add for ${fmtDate(sel)}</label><input id="qp" name="q" placeholder="Add to ${esc(relDay(sel).toLowerCase())}…" enterkeyhint="done"><button class="btn pri">Add</button></form>
     ${tl||`<div class="card muted small">Free day. Add a task, or block study time.</div>`}</section>`;
   const od=tasks.filter(x=>!x.done&&x.date&&x.date<t).sort(byTime);
-  if(od.length)h+=`<section aria-labelledby="h-od"><h2 id="h-od" style="color:var(--bad)">Overdue · ${od.length}<button class="act" data-a="rollOver">Move all to today</button></h2><div class="list">${od.map(x=>taskRow(x,{showDate:true})).join('')}</div></section>`;
+  if(od.length)h+=`<section aria-labelledby="h-od"><h2 id="h-od" style="color:var(--bad)">Overdue · ${od.length}<button class="act" data-a="rollOver">Move all to today</button></h2><div class="list">${capList('planOd',od,x=>taskRow(x,{showDate:true}))}</div></section>`;
   const inbox=tasks.filter(x=>!x.date&&!x.done).sort(byTime);
-  h+=`<section aria-labelledby="h-in"><h2 id="h-in">Inbox · no date<button class="act" data-a="newTask" data-date="">+ Add</button></h2>${inbox.length?`<div class="list">${inbox.map(x=>taskRow(x)).join('')}</div>`:'<div class="card muted small">Ideas and someday tasks land here when you leave the date empty.</div>'}</section>`;
+  h+=`<section aria-labelledby="h-in"><h2 id="h-in">Inbox · no date<button class="act" data-a="newTask" data-date="">+ Add</button></h2>${inbox.length?`<div class="list">${capList('inbox',inbox,x=>taskRow(x))}</div>`:'<div class="card muted small">Ideas and someday tasks land here when you leave the date empty.</div>'}</section>`;
   // upcoming
   const up=[];for(let i=1;i<=14;i++){const d=ymd(addDays(new Date(),i)),n=tasks.filter(x=>x.date===d&&!x.done),e=[...eventsOn(d),...classesOn(d)];if(n.length||e.length)up.push({d,n,e})}
   if(up.length)h+=`<section aria-labelledby="h-up"><h2 id="h-up">Next 14 days</h2><div class="list">${up.map(u=>`<div class="row" data-a="planDay" data-date="${u.d}"><div style="width:64px" class="small"><b>${esc(relDay(u.d)==='Tomorrow'?'Tmr':DOW[pd(u.d).getDay()])}</b> <span class="muted">${pd(u.d).getDate()} ${MON[pd(u.d).getMonth()]}</span></div><div class="grow small muted" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc([...u.n.map(x=>x.title),...u.e.map(x=>x.title)].slice(0,3).join(' · '))}</div><span class="tag">${u.n.length+u.e.length}</span></div>`).join('')}</div></section>`;
@@ -1056,7 +1063,8 @@ function render(soft){
   $('#hdrTitle').textContent=VIEWS[tab][0];
   const d=new Date();$('#hdrDate').textContent=`${DOW[d.getDay()]}, ${d.getDate()} ${(innerWidth<430?MON:MONL)[d.getMonth()]}`;
   document.querySelectorAll('.tabs [role=tab]').forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===tab));
-  try{$('#view').innerHTML=VIEWS[tab][1]()}catch(e){log('error','render',e.message,e.stack);$('#view').innerHTML=`<div class="card" style="margin-top:20px"><h3>Something went wrong showing this tab</h3><p class="muted small">${esc(e.message)}</p><button class="btn sm" data-a="settings">Open Settings → Logs</button></div>`}
+  ALLC={};try{$('#view').innerHTML=VIEWS[tab][1]()}catch(e){log('error','render',e.message,e.stack);$('#view').innerHTML=`<div class="card" style="margin-top:20px"><h3>Something went wrong showing this tab</h3><p class="muted small">${esc(e.message)}</p><button class="btn sm" data-a="settings">Open Settings → Logs</button></div>`}
+  finally{ALLC=null}
   setStatus();lastRender=Date.now();
 }
 
@@ -1395,6 +1403,7 @@ const A={
   // show / hide the app key; hides itself again after 30 s so it isn't left on screen
   sideToggle:()=>{const off=document.body.classList.toggle('side-off');try{localStorage.setItem('flow.sideOff',off?'1':'')}catch(e){}
     const b=off?$('.side-open'):$('.side-tog');if(b&&document.activeElement&&document.activeElement.closest('.tabs,.side-open'))b.focus()},
+  showMore:d=>{(UI.more=UI.more||{})[d.k]=1;render()},
   toggleKey:(d,el)=>{const i=$('#s_key');if(!i)return;const show=i.type==='password';i.type=show?'text':'password';el.setAttribute('aria-pressed',show);el.setAttribute('aria-label',show?'Hide app key':'Show app key');el.innerHTML=show?EYE_OFF:EYE;
     clearTimeout(i._hide);if(show)i._hide=setTimeout(()=>{if(i.isConnected&&i.type==='text')A.toggleKey({},el)},30000)},
   saveConn:async()=>{const url=val('s_url'),key=val('s_key');
