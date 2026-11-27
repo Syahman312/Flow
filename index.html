@@ -197,6 +197,11 @@ label.f>span{display:block;font-size:12.5px;color:var(--mute);margin-bottom:5px;
 .hm-m{height:14px;font-size:9.5px;color:var(--faint);white-space:nowrap}
 .hm{display:block;width:11px;height:11px;border-radius:3px;background:var(--card2);cursor:pointer}.hm.l1{background:rgba(167,139,250,.3)}.hm.l2{background:rgba(167,139,250,.55)}.hm.l3{background:rgba(167,139,250,.8)}.hm.l4{background:#a78bfa}.hm.lf{visibility:hidden}
 .hm-key{display:flex;align-items:center;gap:3px;margin-top:8px}.hm-key .hm{cursor:default}
+.jy-g{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:4px}@media(min-width:560px){.jy-g{grid-template-columns:repeat(6,1fr)}}
+.jy{display:flex;flex-direction:column;align-items:flex-start;gap:1px;padding:7px 9px;border-radius:12px;background:var(--card2);border:1px solid var(--line);text-align:left;min-height:48px;cursor:pointer;color:var(--text)}
+.jy b{font-size:14px}.jy span{font-size:11px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.jy.passed,.jy.exempt{background:color-mix(in srgb,var(--habit) 16%,var(--card2));border-color:color-mix(in srgb,var(--habit) 45%,transparent)}.jy.passed b,.jy.exempt b{color:var(--habit)}
+.jy.failed{border-color:color-mix(in srgb,var(--bad) 55%,transparent)}.jy.booked{border-color:color-mix(in srgb,var(--study) 60%,transparent)}.jy.none{opacity:.6}
 .row.ci{cursor:default;align-items:flex-start}.ci-btns{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .row.more{justify-content:center;width:100%;color:var(--acc);font-weight:600;font-size:13.5px}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
@@ -322,7 +327,7 @@ label.f>span{display:block;font-size:12.5px;color:var(--mute);margin-bottom:5px;
 'use strict';
 try{if(localStorage.getItem('flow.sideOff'))document.body.classList.add('side-off')}catch(e){}
 /* ================================================================ basics */
-const APP_VERSION='2.12.0';
+const APP_VERSION='2.13.0';
 const APP_TITLE='Flow — Today, Plan, Study, Close & Habits';
 const $=(s,r=document)=>r.querySelector(s);
 const pad=n=>String(n).padStart(2,'0');
@@ -985,6 +990,7 @@ function vStudy(){
   h+='</section>';
   h+=heatmapHTML(ss);
   h+=timetableHTML();
+  if((f==='All'||f==='ACCA')&&(every.some(p=>kindOf(p)==='ACCA')||ATT().length))h+=journeyHTML();
   // subjects
   h+=`<section aria-labelledby="h-papers"><h2 id="h-papers">Subjects<button class="act" data-a="newPaper" data-kind="${f==='All'?'':f}">+ Add</button></h2>`;
   h+=active.length?active.map(subjCard).join(''):'<p class="small muted">Everything here is completed 🎉 Add something new to learn.</p>';
@@ -1004,7 +1010,7 @@ function subjCard(p){
   let h=`<div class="card"><div class="split" data-a="openPaper" data-id="${esc(p.id)}" style="cursor:pointer" role="button" aria-expanded="${open}"><div><h3>${subjIcon(p)}${esc(p.code)}${p.title&&p.title!==p.code?` <span class="muted" style="font-weight:500">${esc(p.title)}</span>`:''}</h3><div class="meta">${k!=='ACCA'?`<span class="tag">${esc(K.label)}</span>`:''}<span class="tag ${isDoneSubj(p)?'good':p.status==='Exam booked'?'warn':''}">${esc(p.status||'Planned')}</span>${p.exam?`<span>${fmtDate(p.exam)}${p.exam>=t?' · '+dayDiff(p.exam,t)+'d':''}</span>`:''}${p.score!=null&&p.score!==''?`<span>Score ${esc(p.score)}</span>`:''}</div></div><span class="muted">${open?'▾':'▸'}</span></div>
     <div class="grid2" style="margin-top:10px">${cells.join('')}</div>`;
   if(open){h+=`<div style="margin-top:12px">${tp.length?`<div class="list">${tp.map(x=>`<div class="row" style="cursor:default"><div class="grow small">${esc(x.title)}</div><div class="conf" role="group" aria-label="Confidence for ${esc(x.title)}">${['–','1','2','3'].map((l,i)=>`<button class="c${i} ${(+x.conf||0)===i?'on':''}" data-a="conf" data-id="${esc(x.id)}" data-v="${i}" aria-label="${['Not started','Weak','OK','Strong'][i]}" aria-pressed="${(+x.conf||0)===i}">${l}</button>`).join('')}</div><button class="icon-btn" style="width:36px;height:36px" data-a="delTopic" data-id="${esc(x.id)}" aria-label="Delete topic ${esc(x.title)}">×</button></div>`).join('')}</div><p class="tiny muted">– not started · 1 weak · 2 OK · 3 strong</p>`:`<p class="small muted">${K.exam?'Add syllabus areas to track readiness.':'Add topics, chapters or milestones to track progress.'}</p>`}
-    ${planHTML(p)}${K.exam?mocksHTML(p):''}
+    ${planHTML(p)}${K.exam?mocksHTML(p):''}${k==='ACCA'?attemptsHTML(p):''}
     <div class="btns" style="margin-top:14px"><button class="btn sm pri" data-a="studyNow" data-id="${esc(p.id)}">▶ Focus</button><button class="btn sm" data-a="logStudy" data-id="${esc(p.id)}">+ Log time</button><button class="btn sm" data-a="addTopics" data-id="${esc(p.id)}">+ Topics</button><button class="btn sm" data-a="blockStudy" data-id="${esc(p.id)}">📅 Block</button><button class="btn sm" data-a="editPaper" data-id="${esc(p.id)}">Edit</button></div></div>`}
   return h+'</div>'}
 
@@ -1027,6 +1033,50 @@ function mocksHTML(p){const ms=mocksOf(p.id),k='mk'+p.id,all_=UI.more&&UI.more[k
   h+=`<div class="list" style="margin-top:6px">${(all_?rows:rows.slice(0,4)).map(m=>`<div class="row" data-a="mockSheet" data-paper="${esc(p.id)}" data-id="${esc(m.id)}"><div class="grow"><div class="t-title small">${esc(m.name||'Mock exam')}</div><div class="meta"><span>${fmtDate(m.date)}</span>${m.mins?`<span>${hrs(m.mins)}</span>`:''}</div></div><span class="tag ${m.score>=PASS?'good':'bad'}">${m.score}%</span></div>`).join('')}</div>`;
   if(!all_&&rows.length>4)h+=`<button class="row more" data-a="showMore" data-k="${esc(k)}">Show ${rows.length-4} more</button>`;
   return h}
+
+/* ACCA exam attempts & journey: real sittings per paper, linked to the subject by paper code */
+const ATT=()=>Array.isArray(META.prefs.attempts)?META.prefs.attempts:[];
+const SIT_M={'03':'Mar','06':'Jun','09':'Sep','12':'Dec'};
+const sitL=s=>(SIT_M[s.slice(5,7)]||'')+' '+s.slice(0,4);
+const sitOf=date=>{const y=+date.slice(0,4),m=+date.slice(5,7);return y+'-'+String(Math.ceil(m/3)*3).padStart(2,'0')};
+const attOf=code=>ATT().filter(a=>a.code===code).sort((a,b)=>a.sitting.localeCompare(b.sitting));
+const accaSubj=code=>all('papers').find(p=>kindOf(p)==='ACCA'&&(p.code||'').toUpperCase()===code);
+const ACCA_LV=[['Applied Knowledge',['BT','MA','FA']],['Applied Skills',['LW','PM','TX','FR','AA','FM']],['Strategic Essentials',['SBL','SBR']],['Options · pick 2',['AFM','APM','ATX','AAA']]];
+function paperState(code){const p=accaSubj(code),at=attOf(code),pass=at.find(a=>a.result==='Pass');
+  if(p&&p.status==='Exempt')return{st:'exempt',p,at};
+  if(pass||(p&&p.status==='Passed'))return{st:'passed',p,at,pass};
+  if(p&&p.exam&&p.exam>=todayS())return{st:'booked',p,at};
+  if(at.some(a=>a.result==='Fail'))return{st:'failed',p,at};
+  return{st:p?'studying':'none',p,at}}
+function journeyStats(){const S={};ACCA_LV.forEach(([,cs])=>cs.forEach(c=>S[c]=paperState(c)));
+  const ok=c=>['passed','exempt'].includes(S[c].st),core=ACCA_LV.slice(0,3).flatMap(l=>l[1]),opt=ACCA_LV[3][1].filter(ok).length;
+  const done=core.filter(ok).length+Math.min(2,opt),at=ATT().filter(a=>a.result!=='Absent'),pass=at.filter(a=>a.result==='Pass').length;
+  const firstTime=Object.keys(S).filter(c=>{const a=S[c].at.filter(x=>x.result!=='Absent');return a.length&&a[0].result==='Pass'}).length;
+  return{S,done,sat:at.length,pass,firstTime}}
+function journeyHTML(){const {S,done,sat,pass,firstTime}=journeyStats();
+  const chip=c=>{const {st,at,pass:ps,p}=S[c],last=at[at.length-1],tries=at.filter(a=>a.result!=='Absent').length;
+    const sub=st==='exempt'?'Exempt':st==='passed'?(ps?`${sitL(ps.sitting).replace(/^(\w+) 20/,'$1 ’')}${ps.mark!=null?' · '+ps.mark+'%':''}`:'Passed'):st==='booked'?'📅 '+fmtDate(p.exam).replace(/^\w+ /,''):st==='failed'?`${tries} tr${tries===1?'y':'ies'} · last ${last.mark!=null?last.mark+'%':last.result}`:st==='studying'?'Studying':'—';
+    return `<button class="jy ${st}" data-a="accaPaper" data-code="${c}" aria-label="${c}: ${esc(sub)}"><b>${st==='passed'||st==='exempt'?'✓ ':''}${c}</b><span>${esc(sub)}</span></button>`};
+  return `<section aria-labelledby="h-jy"><h2 id="h-jy">🎓 ACCA journey · ${done}/13</h2><div class="card">
+    <div class="bar" style="height:8px"><i style="width:${done/13*100}%;background:var(--habit)"></i></div>
+    <div class="kpis" style="margin:10px 0 4px"><div class="kpi"><b>${done}/13</b><span>papers done</span></div><div class="kpi"><b>${sat?Math.round(pass/sat*100)+'%':'—'}</b><span>pass rate · ${sat} sat</span></div><div class="kpi"><b>${firstTime}</b><span>first-time passes</span></div></div>
+    ${ACCA_LV.map(([n,cs])=>`<div class="tiny muted" style="margin-top:10px">${n}</div><div class="jy-g">${cs.map(chip).join('')}</div>`).join('')}
+    <p class="tiny muted" style="margin:10px 0 0">Tap a paper to log a past sitting, mark it exempt or open its subject.</p></div></section>`}
+function attRows(code,pid){const at=attOf(code).slice().reverse();
+  return at.length?`<div class="list" style="margin-top:6px">${at.map((a,i)=>`<div class="row" data-a="attSheet" data-code="${esc(code)}" data-id="${esc(a.id)}"><div class="grow"><div class="t-title small">${sitL(a.sitting)} sitting</div><div class="meta"><span>Attempt ${at.length-i}</span>${a.note?`<span>${esc(a.note)}</span>`:''}</div></div><span class="tag ${a.result==='Pass'?'good':a.result==='Fail'?'bad':''}">${a.mark!=null?a.mark+'% · ':''}${a.result}</span></div>`).join('')}</div>`:''}
+function attemptsHTML(p){const code=(p.code||'').toUpperCase(),at=attOf(code),fails=at.filter(a=>a.result==='Fail').length;
+  return `<div class="sub-h"><b>🧾 Exam attempts${at.length?' · '+at.length:''}</b><button class="act" data-a="attSheet" data-code="${esc(code)}">+ Add</button></div>
+  ${at.length?(fails&&!at.some(a=>a.result==='Pass')?`<p class="tiny muted" style="margin:4px 0">Next sitting is attempt ${at.filter(a=>a.result!=='Absent').length+1}. Best so far ${Math.max(0,...at.map(a=>a.mark||0))}% — ${Math.max(0,PASS-Math.max(0,...at.map(a=>a.mark||0)))} marks to go.</p>`:'')+attRows(code):`<p class="tiny muted" style="margin:4px 0 0">Log past sittings of ${esc(code)} — they show in your ACCA journey.</p>`}`}
+function sitOpts(sel){const now=todayS(),o=[];for(let y=+now.slice(0,4)+1;y>=2015;y--)['12','09','06','03'].forEach(m=>{const v=y+'-'+m;if(v<=sitOf(now)||v===sel)o.push(v)});
+  return o.map(v=>`<option value="${v}" ${v===sel?'selected':''}>${sitL(v)}</option>`).join('')}
+function upsertAttempt(code,a){const list=ATT().filter(x=>x.id!==a.id);list.push(a);META.prefs.attempts=list.slice(-200);savePrefs();
+  // link: a pass marks the subject passed (creating it if needed); a fail keeps it in study
+  let p=accaSubj(code);const preset=ACCA.find(x=>x[0]===code);
+  if(!p&&a.result==='Pass')p={id:uid(),code,title:preset?preset[1]:code,kind:'ACCA',exam:'',target:150,weekly:0,status:'Studying',score:null,icon:''};
+  if(p){if(a.result==='Pass'){p.status='Passed';if(a.mark!=null)p.score=a.mark}
+    else if(p.status==='Passed'&&!attOf(code).some(x=>x.result==='Pass'))p.status='Studying';
+    if(p.exam&&sitOf(p.exam)===a.sitting&&a.result!=='Pass'&&p.status==='Exam booked')p.status='Studying';
+    put('papers',p,{silent:true})}}
 
 /* spaced review: a topic comes back after you rated it — weak 2 days, OK 5, strong 12 */
 const REVIEW_DAYS=[0,2,5,12],CONF_L=['Not started','Weak','OK','Strong'];
@@ -1250,6 +1300,8 @@ function savePaper(id){
     p.title=title;p.code=code||title;p.icon=val('p_icon')||K.icon}
   p.kind=k;p.exam=val('p_exam');p.target=+val('p_target')||0;p.weekly=+val('p_weekly')||0;p.status=segVal('pstatus')||K.statuses[1];
   p.score=K.exam&&val('p_score')!==''?+val('p_score'):null;
+  if(k==='ACCA'&&p.status==='Passed'&&p.exam&&p.exam<=todayS()){const c=p.code.toUpperCase(),si=sitOf(p.exam);
+    if(!attOf(c).some(a=>a.sitting===si)){META.prefs.attempts=[...ATT(),{id:uid(),code:c,sitting:si,mark:p.score,result:'Pass',note:''}];savePrefs()}}
   closeSheet();UI.openPaper=p.id;put('papers',p);toast('Saved')}
 const topicOpts=(pid,sel)=>`<option value="">General / no specific topic</option>`+subjTopics(pid).map(x=>`<option value="${esc(x.id)}" ${x.id===sel?'selected':''}>${esc(x.title)}</option>`).join('');
 function logTopics(){const s=$('#l_topic');if(s)s.innerHTML=topicOpts(val('l_paper'))}
@@ -1408,6 +1460,32 @@ const A={
     if(!old&&mins){const p=paperOf(d.paper);put('sessions',{id:'mock_'+m.id,title:`${p?p.code:'Mock'} · mock · ${mins} min`,paper:d.paper,topic:'',date,mins,kind:'Mock',note:m.name||'Mock exam'},{silent:true})}
     closeSheet();buzz(8);render();toast(m.score>=PASS?`✅ ${m.score}% — a pass!`:`${m.score}% logged — keep going`)},
   delMock:d=>{if(!confirm('Delete this mock?'))return;META.prefs.mocks=MOCKS().filter(x=>x.id!==d.id);savePrefs();if(live('mock_'+d.id))remove('sessions','mock_'+d.id,{silent:true});closeSheet();render()},
+  accaPaper:d=>{const c=d.code,{st,p}=paperState(c),preset=ACCA.find(x=>x[0]===c);
+    openSheet(`<h2 class="st" id="sheetTitle">${esc(c)} · ${esc(preset?preset[1]:'')}</h2>
+    <p class="muted small" style="margin:0">${st==='exempt'?'Exempt':st==='passed'?'Passed ✓':st==='booked'?'Exam booked for '+fmtDate(p.exam):st==='failed'?'Not passed yet':st==='studying'?'Studying':'Not started'}</p>
+    ${attRows(c)||'<p class="tiny muted">No sittings logged yet.</p>'}
+    <div class="foot" style="flex-wrap:wrap">${st==='exempt'?'':`<button class="btn" data-a="accaExempt" data-code="${esc(c)}">Exempt</button>`}${p?`<button class="btn" data-a="accaOpen" data-id="${esc(p.id)}">Subject</button>`:`<button class="btn" data-a="accaAdd" data-code="${esc(c)}">Study it</button>`}<button class="btn pri" data-a="attSheet" data-code="${esc(c)}">+ Sitting</button></div>`)},
+  accaOpen:d=>{closeSheet();UI.openPaper=d.id;META.tab='study';render();setTimeout(()=>{const e=document.querySelector(`[data-a=openPaper][data-id="${d.id}"]`);if(e)e.scrollIntoView({block:'start',behavior:'smooth'})},60)},
+  accaAdd:d=>{closeSheet();const pr=ACCA.find(x=>x[0]===d.code);paperSheet({kind:'ACCA',code:d.code,title:pr?pr[1]:d.code,target:150})},
+  accaExempt:d=>{if(!confirm(`Mark ${d.code} as exempt?`))return;let p=accaSubj(d.code);const pr=ACCA.find(x=>x[0]===d.code);
+    p=p||{id:uid(),code:d.code,title:pr?pr[1]:d.code,kind:'ACCA',exam:'',target:0,weekly:0,score:null,icon:''};p.status='Exempt';put('papers',p);closeSheet();toast(d.code+' marked exempt')},
+  attSheet:d=>{const a=ATT().find(x=>x.id===d.id)||{},c=d.code||a.code,def=(()=>{let s=sitOf(todayS());const p=accaSubj(c);if(p&&p.exam&&p.exam<=todayS())return sitOf(p.exam);
+      // latest sitting whose exams are over (results ~ 6 weeks later; just take the previous one if this one is this month)
+      if(+todayS().slice(5,7)===+s.slice(5,7)){const y=+s.slice(0,4),m=+s.slice(5,7)-3;s=m<3?(y-1)+'-12':y+'-'+String(m).padStart(2,'0')}return s})();
+    openSheet(`<h2 class="st" id="sheetTitle">${a.id?'Edit sitting':'Add a sitting'} · ${esc(c)}</h2>
+    <div class="grid2"><label class="f"><span>Sitting</span><select id="at_sit">${sitOpts(a.sitting||def)}</select></label><label class="f"><span>Mark (%)</span><input id="at_mark" type="number" inputmode="numeric" min="0" max="100" value="${esc(a.mark??'')}" placeholder="optional" autofocus></label></div>
+    <label class="f"><span>Result</span>${segBtns('atres',['Pass','Fail','Absent'],a.result||'Fail')}</label>
+    <p class="tiny muted" style="margin:-4px 0 8px">A mark of ${PASS}+ is a pass. Absent doesn't count as an attempt.</p>
+    <label class="f"><span>Note</span><input id="at_note" maxlength="80" value="${esc(a.note||'')}" placeholder="optional, e.g. ran out of time on Q3"></label>
+    <div class="foot">${a.id?`<button class="btn bad" data-a="delAtt" data-id="${esc(a.id)}" data-code="${esc(c)}">Delete</button>`:''}<button class="btn pri" data-a="saveAtt" data-code="${esc(c)}" data-id="${esc(a.id||'')}">Save</button></div>`);
+    const mk=$('#at_mark');if(mk)mk.addEventListener('input',()=>{const v=mk.value;if(v===''||isNaN(+v))return;const r=+v>=PASS?'Pass':'Fail';document.querySelectorAll('[data-seg=atres] button').forEach(b=>{const on=b.dataset.v===r;b.classList.toggle('on',on);b.setAttribute('aria-checked',on)})})},
+  saveAtt:d=>{const mv=val('at_mark');if(mv!==''&&(isNaN(+mv)||+mv<0||+mv>100)){toast('Mark must be 0 to 100');return}
+    const mark=mv===''?null:Math.round(+mv),sit=val('at_sit'),res=segVal('atres')||(mark!=null&&mark>=PASS?'Pass':'Fail');
+    if(ATT().some(x=>x.code===d.code&&x.sitting===sit&&x.id!==d.id)){toast(`${sitL(sit)} is already logged for ${d.code}`);return}
+    const a={id:d.id||uid(),code:d.code,sitting:sit,mark,result:res,note:val('at_note')};
+    upsertAttempt(d.code,a);closeSheet();buzz(8);render();toast(res==='Pass'?`🎉 ${d.code} passed — ${journeyStats().done}/13 done`:res==='Fail'?`${d.code} ${sitL(sit)} logged — you've got this next time`:'Logged')},
+  delAtt:d=>{if(!confirm('Delete this sitting?'))return;META.prefs.attempts=ATT().filter(x=>x.id!==d.id);savePrefs();
+    const p=accaSubj(d.code);if(p&&p.status==='Passed'&&!attOf(d.code).some(x=>x.result==='Pass')){p.status='Studying';put('papers',p,{silent:true})}closeSheet();render()},
   reviewSheet:d=>{const x=DB.topics[d.id];if(!x)return;const p=paperOf(x.paper);
     openSheet(`<h2 class="st" id="sheetTitle">Reviewed: ${esc(x.title)}</h2><p class="muted small" style="margin:0">${p?esc(p.code)+' · ':''}logs the time and sets the next review</p>
     <label class="f"><span>Time spent</span>${segBtns('rvm',['15 min','30 min','45 min','60 min'],'30 min')}</label>
