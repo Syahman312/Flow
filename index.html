@@ -190,6 +190,13 @@ label.f>span{display:block;font-size:12.5px;color:var(--mute);margin-bottom:5px;
 .kpi span{font-size:11.5px;color:var(--mute)}
 .split{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
 .wdh{font-size:12px;color:var(--mute);padding:10px 12px 4px;font-weight:650;background:var(--card);border-bottom:1px solid var(--line)}
+.sub-h{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:16px}.sub-h .act{color:var(--acc);font-size:13px;font-weight:600;min-height:32px}
+.pl-w{min-width:78px}.pl-t{display:inline-block;margin:2px 4px 2px 0;padding:2px 8px;border-radius:8px;background:var(--card2);font-size:12.5px}.pl-t.c1{box-shadow:inset 3px 0 0 var(--bad)}.pl-t.c2{box-shadow:inset 3px 0 0 var(--close)}
+.hm-wrap{overflow-x:auto;direction:rtl;padding-bottom:4px;scrollbar-width:thin}.hm-in{direction:ltr;display:inline-block}
+.hm-m,.hm-g{display:grid;grid-template-columns:repeat(53,11px);gap:3px}.hm-g{grid-template-rows:repeat(7,11px);grid-auto-flow:column}
+.hm-m{height:14px;font-size:9.5px;color:var(--faint);white-space:nowrap}
+.hm{display:block;width:11px;height:11px;border-radius:3px;background:var(--card2);cursor:pointer}.hm.l1{background:rgba(167,139,250,.3)}.hm.l2{background:rgba(167,139,250,.55)}.hm.l3{background:rgba(167,139,250,.8)}.hm.l4{background:#a78bfa}.hm.lf{visibility:hidden}
+.hm-key{display:flex;align-items:center;gap:3px;margin-top:8px}.hm-key .hm{cursor:default}
 .row.ci{cursor:default;align-items:flex-start}.ci-btns{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .row.more{justify-content:center;width:100%;color:var(--acc);font-weight:600;font-size:13.5px}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
@@ -315,7 +322,7 @@ label.f>span{display:block;font-size:12.5px;color:var(--mute);margin-bottom:5px;
 'use strict';
 try{if(localStorage.getItem('flow.sideOff'))document.body.classList.add('side-off')}catch(e){}
 /* ================================================================ basics */
-const APP_VERSION='2.11.0';
+const APP_VERSION='2.12.0';
 const APP_TITLE='Flow — Today, Plan, Study, Close & Habits';
 const $=(s,r=document)=>r.querySelector(s);
 const pad=n=>String(n).padStart(2,'0');
@@ -813,7 +820,7 @@ function vToday(){
     <div class="grow"><h2 id="h-hero" class="sr">Your day</h2><div class="big">${greet()}${name}</div>
     <div class="muted small">${total?`${dn} of ${total} done today`:'Nothing planned yet — add something below'}</div>
     <div class="chips"><span class="chip" title="Days in a row with something done">🔥 ${S.streak}-day streak</span><span class="chip" title="${S.toNext} XP to next level">⭐ Lv ${S.lvl} · ${S.xp} XP</span></div>
-    <div class="bar" aria-hidden="true"><i style="width:${Math.round(S.pct*100)}%"></i></div></div></div></section>${weekFocusLine()}${checkInCard()}
+    <div class="bar" aria-hidden="true"><i style="width:${Math.round(S.pct*100)}%"></i></div></div></div></section>${weekFocusLine()}${checkInCard()}${reviewCard(3,true)}
   <section><form class="quick" data-form="quick" autocomplete="off"><label class="sr" for="qa">Quick add task</label><input id="qa" name="q" placeholder="Add a task… try “IC recon tmr 3pm #work !high”" enterkeyhint="done"><button class="btn pri" aria-label="Add task">Add</button></form></section>`;
 
   // Top 3
@@ -957,7 +964,7 @@ function vStudy(){
     const pct=topics.length?ready:(target?done/target:0);
     h+=`<section aria-labelledby="h-next"><h2 id="h-next">⏳ ${K.exam?'Exam countdown':'Next deadline'}</h2><div class="card"><div class="hero"><div class="cd-big" style="color:${urgColor(days)}"><b>${days}</b><span>${days===1?'day':'days'} left</span></div><div class="grow"><div class="big">${subjIcon(next)}${esc(next.code)}</div><div class="muted small">${next.title!==next.code?esc(next.title)+' · ':''}${fmtDate(next.exam)}${sitting(next)?' · '+sitting(next):''}</div>
       <div class="small" style="margin-top:6px">${wkDays(days)} to go · ${done.toFixed(1)}h${target?` of ${target}h`:' logged'}${need?` · <b style="color:var(--study)">${need.toFixed(1)}h/week</b> needed`:''}</div>${target?`<div class="bar"><i style="width:${Math.min(100,done/target*100)}%"></i></div>`:''}
-      ${topics.length?`<div class="tiny muted" style="margin-top:6px">Topic readiness ${Math.round(ready*100)}% (${topics.length} topics)</div>`:''}</div>${ring(pct,64,7,'var(--study)')}</div>
+      ${topics.length?`<div class="tiny muted" style="margin-top:6px">Topic readiness ${Math.round(ready*100)}% (${topics.length} topics)</div>`:''}${(ms=>ms.length?`<div class="tiny muted">Last mock <b style="color:${ms[ms.length-1].score>=PASS?'var(--habit)':'var(--bad)'}">${ms[ms.length-1].score}%</b></div>`:'')(mocksOf(next.id))}</div>${ring(pct,64,7,'var(--study)')}</div>
       <div class="btns" style="margin-top:12px"><button class="btn sm pri" data-a="studyNow" data-id="${esc(next.id)}">🍅 Pomodoro</button><button class="btn sm" data-a="logStudy" data-id="${esc(next.id)}">+ Log time</button><button class="btn sm" data-a="blockStudy" data-id="${esc(next.id)}">📅 Block time</button></div></div>
       ${ups.length>1?`<div class="list" style="margin-top:10px">${ups.slice(1).map(p=>countdownRow(p,'openPaper')).join('')}</div>`:''}</section>`}
   const nodate=active.filter(p=>!p.exam&&KINDS[kindOf(p)].exam);
@@ -966,6 +973,7 @@ function vStudy(){
   // focus next: weak / not-started topics, nearest deadline first
   const weak=active.flatMap(p=>subjTopics(p.id).filter(x=>(+x.conf||0)<2).sort((a,b)=>(+b.conf||0)-(+a.conf||0)).map(x=>({x,p}))).slice(0,3);
   if(weak.length)h+=`<section aria-labelledby="h-fn"><h2 id="h-fn">Focus next</h2><div class="list">${weak.map(({x,p})=>`<div class="row" style="cursor:default"><div class="grow"><div class="t-title small">${esc(x.title)}</div><div class="meta"><span class="tag ACCA">${subjIcon(p)}${esc(p.code)}</span><span>${+x.conf?'Weak':'Not started'}</span></div></div><button class="btn sm" data-a="studyNow" data-id="${esc(p.id)}" data-topic="${esc(x.id)}" aria-label="Focus 25 minutes on ${esc(x.title)}">▶ 25m</button></div>`).join('')}</div><p class="tiny muted">Topics you rated weak or haven't started yet. Rate them inside each subject.</p></section>`;
+  h+=reviewCard(8,false);
   // week
   const ws=weekStart(new Date()),wsS=ymd(ws),mins=[...Array(7)].map((_,i)=>sm(ymd(addDays(ws,i)),ymd(addDays(ws,i))));
   const wk=mins.reduce((a,b)=>a+b,0);
@@ -975,6 +983,7 @@ function vStudy(){
     <div class="card">${studyChart(mins,ws,'Study minutes per day this week')}</div>`;
   if(goals.length)h+=`<div class="card" style="margin-top:10px"><h3>Weekly goals</h3>${goals.map(p=>{const w=sm(wsS,null,p.id)/60;return `<div style="margin-top:10px"><div class="split small"><span>${subjIcon(p)}${esc(p.code)}</span><span class="muted">${w.toFixed(1)} / ${p.weekly}h${w>=p.weekly?' ✅':''}</span></div><div class="bar"><i style="width:${Math.min(100,w/p.weekly*100)}%;background:var(--study)"></i></div></div>`}).join('')}</div>`;
   h+='</section>';
+  h+=heatmapHTML(ss);
   h+=timetableHTML();
   // subjects
   h+=`<section aria-labelledby="h-papers"><h2 id="h-papers">Subjects<button class="act" data-a="newPaper" data-kind="${f==='All'?'':f}">+ Add</button></h2>`;
@@ -995,8 +1004,68 @@ function subjCard(p){
   let h=`<div class="card"><div class="split" data-a="openPaper" data-id="${esc(p.id)}" style="cursor:pointer" role="button" aria-expanded="${open}"><div><h3>${subjIcon(p)}${esc(p.code)}${p.title&&p.title!==p.code?` <span class="muted" style="font-weight:500">${esc(p.title)}</span>`:''}</h3><div class="meta">${k!=='ACCA'?`<span class="tag">${esc(K.label)}</span>`:''}<span class="tag ${isDoneSubj(p)?'good':p.status==='Exam booked'?'warn':''}">${esc(p.status||'Planned')}</span>${p.exam?`<span>${fmtDate(p.exam)}${p.exam>=t?' · '+dayDiff(p.exam,t)+'d':''}</span>`:''}${p.score!=null&&p.score!==''?`<span>Score ${esc(p.score)}</span>`:''}</div></div><span class="muted">${open?'▾':'▸'}</span></div>
     <div class="grid2" style="margin-top:10px">${cells.join('')}</div>`;
   if(open){h+=`<div style="margin-top:12px">${tp.length?`<div class="list">${tp.map(x=>`<div class="row" style="cursor:default"><div class="grow small">${esc(x.title)}</div><div class="conf" role="group" aria-label="Confidence for ${esc(x.title)}">${['–','1','2','3'].map((l,i)=>`<button class="c${i} ${(+x.conf||0)===i?'on':''}" data-a="conf" data-id="${esc(x.id)}" data-v="${i}" aria-label="${['Not started','Weak','OK','Strong'][i]}" aria-pressed="${(+x.conf||0)===i}">${l}</button>`).join('')}</div><button class="icon-btn" style="width:36px;height:36px" data-a="delTopic" data-id="${esc(x.id)}" aria-label="Delete topic ${esc(x.title)}">×</button></div>`).join('')}</div><p class="tiny muted">– not started · 1 weak · 2 OK · 3 strong</p>`:`<p class="small muted">${K.exam?'Add syllabus areas to track readiness.':'Add topics, chapters or milestones to track progress.'}</p>`}
-    <div class="btns"><button class="btn sm pri" data-a="studyNow" data-id="${esc(p.id)}">▶ Focus</button><button class="btn sm" data-a="logStudy" data-id="${esc(p.id)}">+ Log time</button><button class="btn sm" data-a="addTopics" data-id="${esc(p.id)}">+ Topics</button><button class="btn sm" data-a="blockStudy" data-id="${esc(p.id)}">📅 Block</button><button class="btn sm" data-a="editPaper" data-id="${esc(p.id)}">Edit</button></div></div>`}
+    ${planHTML(p)}${K.exam?mocksHTML(p):''}
+    <div class="btns" style="margin-top:14px"><button class="btn sm pri" data-a="studyNow" data-id="${esc(p.id)}">▶ Focus</button><button class="btn sm" data-a="logStudy" data-id="${esc(p.id)}">+ Log time</button><button class="btn sm" data-a="addTopics" data-id="${esc(p.id)}">+ Topics</button><button class="btn sm" data-a="blockStudy" data-id="${esc(p.id)}">📅 Block</button><button class="btn sm" data-a="editPaper" data-id="${esc(p.id)}">Edit</button></div></div>`}
   return h+'</div>'}
+
+/* ================================================================ STUDY EXTRAS: mock exams · spaced review · heatmap · study plan */
+const PASS=50;
+const MOCKS=()=>Array.isArray(META.prefs.mocks)?META.prefs.mocks:[];          // synced in prefs: {id,paper,date,name,score,mins}
+const mocksOf=pid=>MOCKS().filter(m=>m.paper===pid).sort((a,b)=>a.date.localeCompare(b.date));
+const dAgo=s=>{const n=dayDiff(todayS(),s);return n<=0?'today':n===1?'yesterday':n+'d ago'};
+function mockChart(ms){const W=300,H=90,pd_=10,n=ms.length,x=i=>n<2?W/2:pd_+i*(W-2*pd_)/(n-1),y=s=>H-pd_-Math.max(0,Math.min(100,s))/100*(H-2*pd_);
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Mock scores in order: ${ms.map(m=>m.score+'%').join(', ')}">
+    <line x1="0" x2="${W}" y1="${y(PASS)}" y2="${y(PASS)}" stroke="var(--faint)" stroke-dasharray="4 4" stroke-width="1"/><text x="2" y="${y(PASS)-4}" text-anchor="start" font-size="9" fill="var(--faint)">pass ${PASS}%</text>
+    ${n>1?`<polyline points="${ms.map((m,i)=>`${x(i).toFixed(1)},${y(m.score).toFixed(1)}`).join(' ')}" fill="none" stroke="var(--study)" stroke-width="2" stroke-linejoin="round"/>`:''}
+    ${ms.map((m,i)=>`<circle cx="${x(i).toFixed(1)}" cy="${y(m.score).toFixed(1)}" r="3.5" fill="${m.score>=PASS?'var(--habit)':'var(--bad)'}"/>`).join('')}</svg>`}
+function mocksHTML(p){const ms=mocksOf(p.id),k='mk'+p.id,all_=UI.more&&UI.more[k];
+  let h=`<div class="sub-h"><b>📝 Mock exams &amp; past papers</b><button class="act" data-a="mockSheet" data-paper="${esc(p.id)}">+ Add</button></div>`;
+  if(!ms.length)return h+`<p class="tiny muted" style="margin:4px 0 0">Log each mock or past paper to see your trend against the ${PASS}% pass mark.</p>`;
+  const l3=ms.slice(-3),avg=Math.round(l3.reduce((a,m)=>a+m.score,0)/l3.length);
+  h+=`<div class="tiny muted" style="margin:4px 0">Last ${l3.length} average <b style="color:${avg>=PASS?'var(--habit)':'var(--bad)'}">${avg}%</b> · best ${Math.max(...ms.map(m=>m.score))}% · ${ms.length} done</div>${mockChart(ms)}`;
+  const rows=ms.slice().reverse();
+  h+=`<div class="list" style="margin-top:6px">${(all_?rows:rows.slice(0,4)).map(m=>`<div class="row" data-a="mockSheet" data-paper="${esc(p.id)}" data-id="${esc(m.id)}"><div class="grow"><div class="t-title small">${esc(m.name||'Mock exam')}</div><div class="meta"><span>${fmtDate(m.date)}</span>${m.mins?`<span>${hrs(m.mins)}</span>`:''}</div></div><span class="tag ${m.score>=PASS?'good':'bad'}">${m.score}%</span></div>`).join('')}</div>`;
+  if(!all_&&rows.length>4)h+=`<button class="row more" data-a="showMore" data-k="${esc(k)}">Show ${rows.length-4} more</button>`;
+  return h}
+
+/* spaced review: a topic comes back after you rated it — weak 2 days, OK 5, strong 12 */
+const REVIEW_DAYS=[0,2,5,12],CONF_L=['Not started','Weak','OK','Strong'];
+function reviewDue(){const t=todayS(),last={},out=[];
+  all('sessions').forEach(s=>{if(s.topic&&(!last[s.topic]||s.date>last[s.topic]))last[s.topic]=s.date});
+  all('papers').filter(p=>!isDoneSubj(p)).forEach(p=>subjTopics(p.id).forEach(x=>{const c=+x.conf||0;if(!c)return;
+    const l=[last[x.id]||'',x.updated?ymd(new Date(x.updated)):''].sort().pop();if(!l)return;
+    const due=ymd(addDays(pd(l),REVIEW_DAYS[c]));if(due<=t)out.push({x,p,last:l,late:dayDiff(t,due)})}));
+  return out.sort((a,b)=>(+a.x.conf-+b.x.conf)||(b.late-a.late)||(a.p.exam||'9').localeCompare(b.p.exam||'9'))}
+function reviewCard(n,onToday){const due=reviewDue();if(!due.length)return'';
+  return `<section aria-labelledby="h-rev${onToday?'t':''}"><h2 id="h-rev${onToday?'t':''}">🔁 Review due · ${due.length}${onToday&&due.length>n?`<button class="act" data-a="tab" data-tab="study">All →</button>`:''}</h2><div class="list">${due.slice(0,n).map(({x,p,last})=>`<div class="row" style="cursor:default"><div class="grow"><div class="t-title small">${esc(x.title)}</div><div class="meta"><span class="tag ACCA">${subjIcon(p)}${esc(p.code)}</span><span>${CONF_L[+x.conf]}</span><span>last ${dAgo(last)}</span></div></div><button class="btn sm" data-a="studyNow" data-id="${esc(p.id)}" data-topic="${esc(x.id)}" aria-label="Focus on ${esc(x.title)}">▶</button><button class="btn sm pri" data-a="reviewSheet" data-id="${esc(x.id)}">✓ Done</button></div>`).join('')}</div>${onToday?'':`<p class="tiny muted">Rated topics come back for review: weak after ${REVIEW_DAYS[1]} days, OK after ${REVIEW_DAYS[2]}, strong after ${REVIEW_DAYS[3]}.</p>`}</section>`}
+
+/* heatmap: study minutes per day for the last 53 weeks */
+function heatmapHTML(ss){const t=todayS(),end=addDays(weekStart(new Date()),6),start=addDays(end,-7*53+1),by={};
+  ss.forEach(s=>{by[s.date]=(by[s.date]||0)+(+s.mins||0)});
+  const lv=m=>!m?0:m<30?1:m<60?2:m<120?3:4;let cells='',months='',tot=0,act=0,run=0,best=0,col=0,lastM=-1;
+  for(let d=start;ymd(d)<=ymd(end);d=addDays(d,1)){const k=ymd(d),m=by[k]||0,fut=k>t;
+    if(d.getDay()===1){if(d.getMonth()!==lastM){months+=`<span style="grid-column:${col+1}">${MON[d.getMonth()]}</span>`;lastM=d.getMonth()}col++}
+    if(!fut){tot+=m;if(m){act++;run++;best=Math.max(best,run)}else run=0}
+    cells+=`<i class="hm l${fut?'f':lv(m)}" data-a="heatDay" data-d="${k}" title="${fmtDate(k)}: ${m?hrs(m):'no study'}"></i>`}
+  return `<section aria-labelledby="h-hm"><h2 id="h-hm">Study heatmap · 12 months</h2><div class="kpis" style="margin-bottom:10px"><div class="kpi"><b>${hrs(tot)}</b><span>studied</span></div><div class="kpi"><b>${act}</b><span>active days</span></div><div class="kpi"><b>${best}</b><span>best streak</span></div></div>
+    <div class="card"><div class="hm-wrap"><div class="hm-in"><div class="hm-m" aria-hidden="true">${months}</div><div class="hm-g" role="img" aria-label="Study heatmap: ${act} active days in the last year">${cells}</div></div></div>
+    <div class="hm-key tiny muted" aria-hidden="true">Less <i class="hm l0"></i><i class="hm l1"></i><i class="hm l2"></i><i class="hm l3"></i><i class="hm l4"></i> More · tap a day</div></div></section>`}
+
+/* study plan: spread the topics you're not yet strong on over the weeks left, keep the last weeks for revision */
+function planWeeks(p){const t=todayS();if(!p.exam||p.exam<t)return null;
+  const ws=weekStart(new Date()),weeks=Math.round((weekStart(pd(p.exam))-ws)/6048e5)+1,rev=weeks>=6?2:weeks>=3?1:0,learn=Math.max(1,weeks-rev);
+  const todo=subjTopics(p.id).filter(x=>(+x.conf||0)<3),per=Math.ceil(todo.length/learn)||0,out=[];
+  for(let i=0;i<weeks;i++)out.push({from:ymd(addDays(ws,i*7)),rev:i>=learn,topics:i<learn?todo.slice(i*per,(i+1)*per):[]});
+  return{out,per,todo,weeks,rev}}
+function planHTML(p){const P=planWeeks(p);if(!P)return'';const need=needPerWeek(p),k='pl'+p.id,full=UI.more&&UI.more[k],tw=ymd(weekStart(new Date()));
+  let h=`<div class="sub-h"><b>🗓 Study plan</b>${P.out[0].topics.length?`<button class="act" data-a="planTasks" data-id="${esc(p.id)}">Add this week to tasks</button>`:''}</div>
+    <div class="tiny muted" style="margin:4px 0 6px">${P.weeks} week${P.weeks===1?'':'s'} to go${P.todo.length?` · ${P.todo.length} topic${P.todo.length===1?'':'s'} left, about ${P.per} a week`:''}${P.rev?` · last ${P.rev===1?'week':P.rev+' weeks'} for revision &amp; mocks`:''}${need?` · ${need.toFixed(1)}h/week`:''}</div>`;
+  if(!subjTopics(p.id).length)return h+`<p class="tiny muted" style="margin:0">Add topics (button below) and Flow spreads them over the weeks left. Topics you rate strong drop off the plan.</p>`;
+  if(!P.todo.length)return h+`<p class="tiny muted" style="margin:0">Every topic is rated strong 💪 Spend the time on mocks and review.</p>`;
+  const rows=P.out.filter(w=>w.topics.length||w.rev);
+  h+=`<div class="list">${(full?rows:rows.slice(0,4)).map(w=>`<div class="row" style="cursor:default;align-items:flex-start"><div class="tiny pl-w ${w.from===tw?'':'muted'}"><b>${w.from===tw?'This week':fmtDate(w.from)}</b></div><div class="grow small">${w.rev?'🔁 Revision + mock exams':w.topics.map(x=>`<span class="pl-t c${+x.conf||0}">${esc(x.title)}</span>`).join('')}</div></div>`).join('')}</div>`;
+  if(!full&&rows.length>4)h+=`<button class="row more" data-a="showMore" data-k="${esc(k)}">Show all ${rows.length} weeks</button>`;
+  return h}
 
 /* ================================================================ CLOSE */
 function vClose(){
@@ -1325,6 +1394,34 @@ const A={
     if(!d.id&&from&&from<todayS()){UI.pastWeeks=Math.min(104,Math.ceil(dayDiff(todayS(),from)/7)+1);pastSheet(c.id);toast('🎓 Class added — tick the ones you attended')}
     else{closeSheet();toast(d.id?'Class updated':'🎓 Class added')}},
   delClass:d=>{if(!confirm('Delete this class from your timetable? Hours already logged stay in Study.'))return;META.prefs.classes=CLS().filter(x=>x.id!==d.id);savePrefs();closeSheet();render();toast('Class deleted')},
+  mockSheet:d=>{const m=MOCKS().find(x=>x.id===d.id)||{},p=paperOf(d.paper||m.paper);if(!p)return;
+    openSheet(`<h2 class="st" id="sheetTitle">${m.id?'Edit mock':'Add a mock exam'} · ${esc(p.code)}</h2>
+    <label class="f"><span>Name</span><input id="mk_name" maxlength="80" value="${esc(m.name||'')}" placeholder="e.g. BPP mock 1, Sep 2025 past paper"></label>
+    <div class="grid2"><label class="f"><span>Date</span><input id="mk_date" type="date" value="${esc(m.date||todayS())}" max="${todayS()}"></label><label class="f"><span>Score (%)</span><input id="mk_score" type="number" inputmode="numeric" min="0" max="100" value="${esc(m.score??'')}" autofocus></label></div>
+    ${m.id?'':`<label class="f"><span>Time spent in minutes (optional, added to study time)</span><input id="mk_mins" type="number" inputmode="numeric" min="0" max="600" placeholder="e.g. 180"></label>`}
+    <div class="foot">${m.id?`<button class="btn bad" data-a="delMock" data-id="${esc(m.id)}">Delete</button>`:''}<button class="btn pri" data-a="saveMock" data-paper="${esc(p.id)}" data-id="${esc(m.id||'')}">Save</button></div>`)},
+  saveMock:d=>{const sc=val('mk_score');if(sc===''||isNaN(+sc)||+sc<0||+sc>100){toast('Enter a score from 0 to 100');return}
+    const list=MOCKS().slice(),old=list.find(x=>x.id===d.id),date=val('mk_date')||todayS(),mins=Math.max(0,Math.round(+val('mk_mins')||0));
+    const m=Object.assign(old||{id:uid(),paper:d.paper,mins},{name:val('mk_name'),date,score:Math.round(+sc)});
+    if(!old)list.push(m);META.prefs.mocks=list.slice(-300);savePrefs();
+    if(old&&live('mock_'+m.id)){const s=DB.sessions['mock_'+m.id];s.date=date;put('sessions',s,{silent:true})}
+    if(!old&&mins){const p=paperOf(d.paper);put('sessions',{id:'mock_'+m.id,title:`${p?p.code:'Mock'} · mock · ${mins} min`,paper:d.paper,topic:'',date,mins,kind:'Mock',note:m.name||'Mock exam'},{silent:true})}
+    closeSheet();buzz(8);render();toast(m.score>=PASS?`✅ ${m.score}% — a pass!`:`${m.score}% logged — keep going`)},
+  delMock:d=>{if(!confirm('Delete this mock?'))return;META.prefs.mocks=MOCKS().filter(x=>x.id!==d.id);savePrefs();if(live('mock_'+d.id))remove('sessions','mock_'+d.id,{silent:true});closeSheet();render()},
+  reviewSheet:d=>{const x=DB.topics[d.id];if(!x)return;const p=paperOf(x.paper);
+    openSheet(`<h2 class="st" id="sheetTitle">Reviewed: ${esc(x.title)}</h2><p class="muted small" style="margin:0">${p?esc(p.code)+' · ':''}logs the time and sets the next review</p>
+    <label class="f"><span>Time spent</span>${segBtns('rvm',['15 min','30 min','45 min','60 min'],'30 min')}</label>
+    <label class="f"><span>How did it go?</span>${segBtns('rvc',['Weak','OK','Strong'],CONF_L[+x.conf]||'OK')}</label>
+    <div class="foot"><button class="btn pri" data-a="saveTopicReview" data-id="${esc(x.id)}">Save</button></div>`)},
+  saveTopicReview:d=>{const x=DB.topics[d.id];if(!x)return;const m=parseInt(segVal('rvm'))||30,c=CONF_L.indexOf(segVal('rvc')),p=paperOf(x.paper);
+    put('sessions',{id:uid(),title:`${p?p.code:'Study'} · review · ${m} min`,paper:x.paper,topic:x.id,date:todayS(),mins:m,kind:'Review',note:x.title},{silent:true});
+    if(c>0)x.conf=c;put('topics',x,{silent:true});closeSheet();buzz(8);render();toast(`🔁 ${hrs(m)} logged · next review in ${REVIEW_DAYS[+x.conf||1]} days`)},
+  heatDay:d=>{const m=all('sessions').filter(s=>s.date===d.d).reduce((a,s)=>a+(+s.mins||0),0);toast(`${fmtDate(d.d)}: ${m?hrs(m)+' studied':'no study'}`)},
+  planTasks:d=>{const p=paperOf(d.id),P=p&&planWeeks(p);if(!P)return;const wk=P.out[0],t=todayS(),end=ymd(addDays(pd(wk.from),6)),days=[];
+    for(let x=pd(t);ymd(x)<=end;x=addDays(x,1))days.push(ymd(x));let n=0;
+    wk.topics.forEach((x,i)=>{const id=`plan_${x.id}_${wk.from}`;if(DB.tasks[id]&&!DB.tasks[id].deleted)return;n++;
+      put('tasks',{id,title:`Study: ${x.title}`,date:days[Math.floor(i*days.length/wk.topics.length)],time:'',dur:60,area:kindOf(p)==='ACCA'?'ACCA':'Personal',prio:'Medium',repeat:'none',paper:p.id,done:false,top:false,cal:false,notes:`From the ${p.code} study plan`},{silent:true})});
+    render();toast(n?`📋 ${n} study task${n===1?'':'s'} added for this week`:'This week is already in your tasks')},
   ciLog:d=>A.attend(d),
   ciSkip:d=>{const c=findCls(d);if(!c)return;const sk=Object.assign({},META.prefs.clsSkip||{}),cut=ymd(addDays(new Date(),-14));
     for(const k in sk)if((k.match(/_(\d{4}-\d{2}-\d{2})_\d{4}$/)||[])[1]<cut)delete sk[k];
