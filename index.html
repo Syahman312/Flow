@@ -197,6 +197,19 @@ label.f>span{display:block;font-size:12.5px;color:var(--mute);margin-bottom:5px;
 .hm-m{height:14px;font-size:9.5px;color:var(--faint);white-space:nowrap}
 .hm{display:block;width:11px;height:11px;border-radius:3px;background:var(--card2);cursor:pointer}.hm.l1{background:rgba(167,139,250,.3)}.hm.l2{background:rgba(167,139,250,.55)}.hm.l3{background:rgba(167,139,250,.8)}.hm.l4{background:#a78bfa}.hm.lf{visibility:hidden}
 .hm-key{display:flex;align-items:center;gap:3px;margin-top:8px}.hm-key .hm{cursor:default}
+#ctip{position:fixed;z-index:200;pointer-events:none;background:#1f2025;border:1px solid var(--line);border-radius:10px;padding:6px 10px;box-shadow:0 8px 24px #0009;opacity:0;transform:translateY(4px);transition:opacity .12s,transform .12s;max-width:240px}
+#ctip.on{opacity:1;transform:none}#ctip b{display:block;font-size:14px;color:var(--text)}#ctip span{display:block;font-size:11.5px;color:var(--mute)}
+.chart .hb{cursor:pointer;outline:none}.chart .hb path,.chart .hb rect:not([fill=transparent]),.chart .hb circle{transition:filter .15s}
+.chart .hb:hover path,.chart .hb:hover rect,.chart .hb.tipon path,.chart .hb.tipon rect,.chart .hb.tipon circle,.chart .hb:hover circle{filter:brightness(1.35)}
+.chart .hb:focus-visible rect[fill=transparent]{stroke:var(--acc);stroke-width:1.5}
+.lc .xl,.lc .xd{opacity:0;transition:opacity .12s}.lc.xon .xl,.lc.xon .xd{opacity:1}.lc .xh{cursor:crosshair;outline:none;touch-action:pan-y}
+.donut{flex:none;overflow:visible}.donut .dn{cursor:pointer;transition:stroke-width .15s,filter .15s;outline:none}.donut .dn:hover,.donut .dn.tipon,.donut .dn:focus-visible{stroke-width:28px;filter:brightness(1.15)}
+.dn-w{display:flex;align-items:center;gap:16px;margin-top:12px;flex-wrap:wrap;justify-content:center}.lg{min-width:150px}
+.lg-r{display:flex;align-items:center;gap:8px;font-size:13px;padding:5px 0;border-bottom:1px solid var(--line)}.lg-r:last-child{border:0}.lg-r i{width:10px;height:10px;border-radius:3px;flex:none}.lg-r b{font-weight:600}.lg-r .muted{min-width:34px;text-align:right;font-size:12px}
+.seg.sm button{font-size:12.5px;min-height:32px;padding:4px 8px}
+.cb{display:flex;gap:2px;height:12px;border-radius:6px;overflow:hidden;margin:2px 0 6px}.cb i{min-width:6px;cursor:pointer;transition:filter .15s;outline:none}.cb i:hover,.cb i.tipon{filter:brightness(1.4)}
+.cb-k{display:flex;flex-wrap:wrap;gap:4px 12px;margin-bottom:10px}.cb-k span,.lgk span{display:inline-flex;align-items:center;gap:4px}.cb-k i,.lgk i{width:8px;height:8px;border-radius:2px;display:inline-block}
+.lgk{display:flex;gap:10px;color:var(--mute)}
 .jy-g{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:4px}@media(min-width:560px){.jy-g{grid-template-columns:repeat(6,1fr)}}
 .jy{display:flex;flex-direction:column;align-items:flex-start;gap:1px;padding:7px 9px;border-radius:12px;background:var(--card2);border:1px solid var(--line);text-align:left;min-height:48px;cursor:pointer;color:var(--text)}
 .jy b{font-size:14px}.jy span{font-size:11px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
@@ -327,7 +340,7 @@ label.f>span{display:block;font-size:12.5px;color:var(--mute);margin-bottom:5px;
 'use strict';
 try{if(localStorage.getItem('flow.sideOff'))document.body.classList.add('side-off')}catch(e){}
 /* ================================================================ basics */
-const APP_VERSION='2.13.0';
+const APP_VERSION='2.14.0';
 const APP_TITLE='Flow — Today, Plan, Study, Close & Habits';
 const $=(s,r=document)=>r.querySelector(s);
 const pad=n=>String(n).padStart(2,'0');
@@ -632,8 +645,8 @@ const reviewOf=from=>(META.prefs.reviews||{})[from]||null;
 function weekFocusLine(){const r=reviewOf(ymd(addDays(weekStart(new Date()),-7)));if(!r||!r.focus)return'';
   return `<section><div class="card row" data-a="openReview"><span style="font-size:22px" aria-hidden="true">🎯</span><div class="grow"><div class="tiny muted" style="text-transform:uppercase;letter-spacing:.08em;font-weight:650">This week's focus</div><div class="t-title" style="white-space:pre-line">${esc(r.focus)}</div></div><span class="muted">›</span></div></section>`}
 // bar chart of study minutes, Mon–Sun of the week starting ws
-function studyChart(mins,ws,label){const t=todayS(),max=Math.max(60,...mins);
-  return `<svg class="chart" viewBox="0 0 350 130" role="img" aria-label="${label}: ${mins.map((m,i)=>DOW[(i+1)%7]+' '+m).join(', ')}">${mins.map((m,i)=>{const bh=Math.round(m/max*78),x=10+i*48;return `<rect x="${x}" y="${100-bh}" width="34" height="${Math.max(bh,2)}" rx="6" fill="${ymd(addDays(ws,i))===t?'var(--study)':'#3b3550'}"/><text x="${x+17}" y="120" text-anchor="middle" font-size="11" fill="var(--mute)">${DOW[(i+1)%7]}</text>${m?`<text x="${x+17}" y="${Math.max(12,94-bh)}" text-anchor="middle" font-size="10" fill="var(--mute)">${hrs(m)}</text>`:''}`}).join('')}</svg>`}
+function studyChart(mins,ws,label,goal){const t=todayS(),mx=Math.max(...mins);
+  return barsSVG(mins.map((m,i)=>{const d=ymd(addDays(ws,i)),td=d===t;return{lab:DOW[(i+1)%7],segs:[{v:m,c:td?'var(--study)':'#4b4270'}],tip:[m?hrs(m):'0m',fmtDate(d)+(td?' · today':'')],hi:td,top:m&&(td||m===mx)?hrs(m):''}}),{label:label+': '+mins.map((m,i)=>DOW[(i+1)%7]+' '+m).join(', '),min:60,goal:goal?goal*60/7:0,goalL:goal?'daily pace':''})}
 
 /* ================================================================ UI helpers */
 let UI={planDay:todayS(),openPaper:null,studyKind:'All',showDone:false,openHabit:null,closePer:null,sheet:null,diag:null,logs:false};
@@ -861,6 +874,7 @@ function vToday(){
   const hr=new Date().getHours(),tm=ymd(addDays(new Date(),1));
   if(hr>=17){const n=tasks.filter(x=>x.date===tm&&!x.done).length;
     h+=`<section><div class="card"><h3>🌙 Plan tomorrow</h3><p class="muted small" style="margin:6px 0 12px">${n?`${n} task${n>1?'s':''} lined up for tomorrow.`:'Nothing for tomorrow yet. Two minutes now saves twenty in the morning.'}</p><button class="btn sm pri" data-a="planDay" data-date="${tm}">Open tomorrow</button></div></section>`}
+  h+=doneChartHTML();
   if(new Date().getDay()===1||new Date().getDay()===0)h+=weeklyReview();
   return h}
 function weeklyReview(){
@@ -935,7 +949,7 @@ function vPlanBody(){
   let h=`<section aria-labelledby="h-week"><h2 id="h-week" class="sr">Week</h2><div class="navrow"><button class="icon-btn" data-a="week" data-n="-7" aria-label="Previous week">‹</button><div class="grow" style="text-align:center;font-weight:650">${MONL[pd(sel).getMonth()]} ${pd(sel).getFullYear()}</div>${sel!==t?`<button class="btn sm" data-a="planDay" data-date="${t}">Today</button>`:''}<button class="icon-btn" data-a="week" data-n="7" aria-label="Next week">›</button></div><div class="week">`;
   for(let i=0;i<7;i++){const d=ymd(addDays(ws,i)),n=tasks.filter(x=>x.date===d&&!x.done).length,e=eventsOn(d).length+classesOn(d).length;
     h+=`<button class="day ${d===sel?'sel':''} ${d===t?'today':''}" data-a="planDay" data-date="${d}" aria-label="${fmtDate(d)}: ${n} tasks, ${e} events" aria-current="${d===sel?'date':'false'}"><span class="dw">${DOW[addDays(ws,i).getDay()]}</span><span class="dn">${addDays(ws,i).getDate()}</span><span class="dots">${'<i></i>'.repeat(Math.min(n,3))}${'<i class="e"></i>'.repeat(Math.min(e,2))}</span></button>`}
-  h+='</div></section>';
+  h+='</div>'+weekLoadHTML(ws,sel)+'</section>';
   const tl=timeline(sel,{untimed:true});
   h+=`<section aria-labelledby="h-day"><h2 id="h-day">${esc(relDay(sel))}${Math.abs(dayDiff(sel,t))<=1?' · '+fmtDate(sel):''}<button class="act" data-a="newTask" data-date="${sel}">+ Add</button></h2>
     <form class="quick" data-form="quick" data-date="${sel}" autocomplete="off" style="margin-bottom:10px"><label class="sr" for="qp">Quick add for ${fmtDate(sel)}</label><input id="qp" name="q" placeholder="Add to ${esc(relDay(sel).toLowerCase())}…" enterkeyhint="done"><button class="btn pri">Add</button></form>
@@ -985,9 +999,11 @@ function vStudy(){
   const sDays=new Set(ss.map(s=>s.date));let d=new Date();if(!sDays.has(ymd(d)))d=addDays(d,-1);let sk=0;while(sDays.has(ymd(d))){sk++;d=addDays(d,-1)}
   const goals=active.filter(p=>+p.weekly>0);
   h+=`<section aria-labelledby="h-wk"><h2 id="h-wk">This week</h2><div class="kpis" style="margin-bottom:10px"><div class="kpi"><b>${hrs(wk)}</b><span>studied</span></div><div class="kpi"><b>🔥 ${sk}</b><span>study streak</span></div><div class="kpi"><b>${hrs(sm())}</b><span>all time</span></div></div>
-    <div class="card">${studyChart(mins,ws,'Study minutes per day this week')}</div>`;
+    <div class="card">${studyChart(mins,ws,'Study minutes per day this week',goals.reduce((a,p)=>a+(+p.weekly||0),0))}</div>`;
   if(goals.length)h+=`<div class="card" style="margin-top:10px"><h3>Weekly goals</h3>${goals.map(p=>{const w=sm(wsS,null,p.id)/60;return `<div style="margin-top:10px"><div class="split small"><span>${subjIcon(p)}${esc(p.code)}</span><span class="muted">${w.toFixed(1)} / ${p.weekly}h${w>=p.weekly?' ✅':''}</span></div><div class="bar"><i style="width:${Math.min(100,w/p.weekly*100)}%;background:var(--study)"></i></div></div>`}).join('')}</div>`;
   h+='</section>';
+  h+=trendHTML(ss,goals.reduce((a,p)=>a+(+p.weekly||0),0));
+  h+=splitHTML(ss);
   h+=heatmapHTML(ss);
   h+=timetableHTML();
   if((f==='All'||f==='ACCA')&&(every.some(p=>kindOf(p)==='ACCA')||ATT().length))h+=journeyHTML();
@@ -1009,7 +1025,7 @@ function subjCard(p){
   if(tp.length)cells.push(`<div><div class="tiny muted">Readiness ${Math.round(ready*100)}%</div><div class="bar"><i style="width:${ready*100}%;background:var(--habit)"></i></div></div>`);
   let h=`<div class="card"><div class="split" data-a="openPaper" data-id="${esc(p.id)}" style="cursor:pointer" role="button" aria-expanded="${open}"><div><h3>${subjIcon(p)}${esc(p.code)}${p.title&&p.title!==p.code?` <span class="muted" style="font-weight:500">${esc(p.title)}</span>`:''}</h3><div class="meta">${k!=='ACCA'?`<span class="tag">${esc(K.label)}</span>`:''}<span class="tag ${isDoneSubj(p)?'good':p.status==='Exam booked'?'warn':''}">${esc(p.status||'Planned')}</span>${p.exam?`<span>${fmtDate(p.exam)}${p.exam>=t?' · '+dayDiff(p.exam,t)+'d':''}</span>`:''}${p.score!=null&&p.score!==''?`<span>Score ${esc(p.score)}</span>`:''}</div></div><span class="muted">${open?'▾':'▸'}</span></div>
     <div class="grid2" style="margin-top:10px">${cells.join('')}</div>`;
-  if(open){h+=`<div style="margin-top:12px">${tp.length?`<div class="list">${tp.map(x=>`<div class="row" style="cursor:default"><div class="grow small">${esc(x.title)}</div><div class="conf" role="group" aria-label="Confidence for ${esc(x.title)}">${['–','1','2','3'].map((l,i)=>`<button class="c${i} ${(+x.conf||0)===i?'on':''}" data-a="conf" data-id="${esc(x.id)}" data-v="${i}" aria-label="${['Not started','Weak','OK','Strong'][i]}" aria-pressed="${(+x.conf||0)===i}">${l}</button>`).join('')}</div><button class="icon-btn" style="width:36px;height:36px" data-a="delTopic" data-id="${esc(x.id)}" aria-label="Delete topic ${esc(x.title)}">×</button></div>`).join('')}</div><p class="tiny muted">– not started · 1 weak · 2 OK · 3 strong</p>`:`<p class="small muted">${K.exam?'Add syllabus areas to track readiness.':'Add topics, chapters or milestones to track progress.'}</p>`}
+  if(open){h+=`<div style="margin-top:12px">${tp.length?confBar(tp)+`<div class="list">${tp.map(x=>`<div class="row" style="cursor:default"><div class="grow small">${esc(x.title)}</div><div class="conf" role="group" aria-label="Confidence for ${esc(x.title)}">${['–','1','2','3'].map((l,i)=>`<button class="c${i} ${(+x.conf||0)===i?'on':''}" data-a="conf" data-id="${esc(x.id)}" data-v="${i}" aria-label="${['Not started','Weak','OK','Strong'][i]}" aria-pressed="${(+x.conf||0)===i}">${l}</button>`).join('')}</div><button class="icon-btn" style="width:36px;height:36px" data-a="delTopic" data-id="${esc(x.id)}" aria-label="Delete topic ${esc(x.title)}">×</button></div>`).join('')}</div><p class="tiny muted">– not started · 1 weak · 2 OK · 3 strong</p>`:`<p class="small muted">${K.exam?'Add syllabus areas to track readiness.':'Add topics, chapters or milestones to track progress.'}</p>`}
     ${planHTML(p)}${K.exam?mocksHTML(p):''}${k==='ACCA'?attemptsHTML(p):''}
     <div class="btns" style="margin-top:14px"><button class="btn sm pri" data-a="studyNow" data-id="${esc(p.id)}">▶ Focus</button><button class="btn sm" data-a="logStudy" data-id="${esc(p.id)}">+ Log time</button><button class="btn sm" data-a="addTopics" data-id="${esc(p.id)}">+ Topics</button><button class="btn sm" data-a="blockStudy" data-id="${esc(p.id)}">📅 Block</button><button class="btn sm" data-a="editPaper" data-id="${esc(p.id)}">Edit</button></div></div>`}
   return h+'</div>'}
@@ -1023,7 +1039,7 @@ function mockChart(ms){const W=300,H=90,pd_=10,n=ms.length,x=i=>n<2?W/2:pd_+i*(W
   return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Mock scores in order: ${ms.map(m=>m.score+'%').join(', ')}">
     <line x1="0" x2="${W}" y1="${y(PASS)}" y2="${y(PASS)}" stroke="var(--faint)" stroke-dasharray="4 4" stroke-width="1"/><text x="2" y="${y(PASS)-4}" text-anchor="start" font-size="9" fill="var(--faint)">pass ${PASS}%</text>
     ${n>1?`<polyline points="${ms.map((m,i)=>`${x(i).toFixed(1)},${y(m.score).toFixed(1)}`).join(' ')}" fill="none" stroke="var(--study)" stroke-width="2" stroke-linejoin="round"/>`:''}
-    ${ms.map((m,i)=>`<circle cx="${x(i).toFixed(1)}" cy="${y(m.score).toFixed(1)}" r="3.5" fill="${m.score>=PASS?'var(--habit)':'var(--bad)'}"/>`).join('')}</svg>`}
+    ${ms.map((m,i)=>`<g class="hb" ${tipA(m.score+'%'+(m.score>=PASS?' · pass':' · below pass'),(m.name||'Mock exam')+' · '+fmtDate(m.date))} role="img" aria-label="${esc(m.name||'Mock')}: ${m.score}%"><circle cx="${x(i).toFixed(1)}" cy="${y(m.score).toFixed(1)}" r="14" fill="transparent"/><circle cx="${x(i).toFixed(1)}" cy="${y(m.score).toFixed(1)}" r="4.5" fill="${m.score>=PASS?'var(--habit)':'var(--bad)'}" stroke="var(--card)" stroke-width="2"/></g>`).join('')}</svg>`}
 function mocksHTML(p){const ms=mocksOf(p.id),k='mk'+p.id,all_=UI.more&&UI.more[k];
   let h=`<div class="sub-h"><b>📝 Mock exams &amp; past papers</b><button class="act" data-a="mockSheet" data-paper="${esc(p.id)}">+ Add</button></div>`;
   if(!ms.length)return h+`<p class="tiny muted" style="margin:4px 0 0">Log each mock or past paper to see your trend against the ${PASS}% pass mark.</p>`;
@@ -1127,7 +1143,7 @@ function vClose(){
   const status=done===items.length?'<span class="tag good">Complete ✓</span>':over.length?`<span class="tag bad">${over.length} overdue</span>`:'<span class="tag good">On track</span>';
   let h=`<section aria-labelledby="h-per"><div class="navrow"><button class="icon-btn" data-a="per" data-n="-1" aria-label="Previous month">‹</button><h2 id="h-per" class="grow" style="justify-content:center;margin:0;color:var(--text);font-size:16px;text-transform:none;letter-spacing:0">${perLabel(p)} close</h2><button class="icon-btn" data-a="per" data-n="1" aria-label="Next month">›</button></div>
     <div class="card hero">${ring(done/items.length,84,8,'var(--close)')}<div class="grow"><div class="big">${done}/${items.length} done</div><div class="muted small">${wd?`Today is WD${wd}`:`WD1 is ${fmtDate(wdDate(p,1))}`} · deadline ${fmtDate(last)}</div><div class="chips">${status}${done<items.length&&last>=t?`<span class="chip">${dayDiff(last,t)} day${dayDiff(last,t)===1?'':'s'} left</span>`:''}</div></div></div>
-    <div class="btns" style="margin-top:10px">${connected()?`<button class="btn sm" data-a="closeCal">📅 Add to Google Calendar</button>`:''}<button class="btn sm" data-a="editClose">Edit checklist</button><button class="btn sm" data-a="holidays">Holidays</button></div></section>`;
+    <div class="btns" style="margin-top:10px">${connected()?`<button class="btn sm" data-a="closeCal">📅 Add to Google Calendar</button>`:''}<button class="btn sm" data-a="editClose">Edit checklist</button><button class="btn sm" data-a="holidays">Holidays</button></div>${closeWdHTML(p,items,t)}</section>`;
   h+='<section aria-labelledby="h-items"><h2 id="h-items">Checklist</h2><div class="list">';
   let lastWd=null;
   items.forEach(i=>{const due=wdDate(p,i.wd),dn=closeDone(p,i.id),lg=DB.closeLog[p+'|'+i.id];
@@ -1137,7 +1153,7 @@ function vClose(){
   h+='</div></section>';
   // history
   const hist=[];for(let k=-5;k<=0;k++){const pp=perAdd(p,k);const dn=items.filter(i=>closeDone(pp,i.id)).length;const ontime=items.filter(i=>{const r=DB.closeLog[pp+'|'+i.id];return r&&r.done&&r.doneAt&&r.doneAt.slice(0,10)<=wdDate(pp,i.wd)}).length;hist.push({pp,dn,ontime})}
-  h+=`<section aria-labelledby="h-hist"><h2 id="h-hist">Last 6 closes</h2><div class="card"><svg class="chart" viewBox="0 0 350 120" role="img" aria-label="Close completion by month">${hist.map((x,i)=>{const hgt=Math.round(x.dn/items.length*80),ot=Math.round(x.ontime/items.length*80),xx=12+i*56;return `<rect x="${xx}" y="${90-hgt}" width="40" height="${Math.max(2,hgt)}" rx="6" fill="#4a3c16"/><rect x="${xx}" y="${90-ot}" width="40" height="${Math.max(0,ot)}" rx="6" fill="var(--close)"/><text x="${xx+20}" y="108" text-anchor="middle" font-size="11" fill="var(--mute)">${perLabel(x.pp).slice(0,3)}</text>`}).join('')}</svg><div class="tiny muted">Bright = done on time · dim = done late</div></div></section>`;
+  h+=`<section aria-labelledby="h-hist"><h2 id="h-hist">Last 6 closes</h2><div class="card"><div class="split small"><span class="muted">Done per month</span><span class="lgk tiny"><span><i style="background:var(--close)"></i>On time</span><span><i style="background:#6b5418"></i>Late</span></span></div>${barsSVG(hist.map(x=>({lab:perLabel(x.pp).slice(0,3),segs:[{v:x.ontime,c:'var(--close)'},{v:x.dn-x.ontime,c:'#6b5418'}],tip:[`${x.dn}/${items.length} done`,`${perLabel(x.pp)} · ${x.ontime} on time`],hi:x.pp===p,top:x.dn?Math.round(x.ontime/items.length*100)+'%':''})),{label:'Close completion by month, on time and late',max:items.length,h:120,bw:36})}<div class="tiny muted">% = done on time</div></div></section>`;
   return h}
 
 /* ================================================================ HABITS */
@@ -1149,6 +1165,7 @@ function vHabits(){
   const days=[...Array(7)].map((_,i)=>ymd(addDays(new Date(),i-6)));
   h+=`<section aria-labelledby="h-7"><h2 id="h-7">Last 7 days</h2><div class="card"><div class="hgrid"><div></div>${days.map(d=>`<div class="hd">${DOW[pd(d).getDay()].slice(0,2)}<br>${pd(d).getDate()}</div>`).join('')}
     ${hs.map(x=>`<div class="small" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(x.icon||'')} ${esc(x.title)}</div>${days.map(d=>`<button class="hdot ${habitDone(x.id,d)?'on':''}" style="--hc:${esc(x.color||'#4ade80')}" data-a="toggleHabit" data-id="${esc(x.id)}" data-date="${d}" aria-label="${esc(x.title)} on ${fmtDate(d)}" aria-pressed="${habitDone(x.id,d)}"></button>`).join('')}`).join('')}</div></div></section>`;
+  h+=habitTrendHTML(hs);
   h+=`<section aria-labelledby="h-hs"><h2 id="h-hs">Streaks & stats</h2>`;
   hs.forEach(x=>{const s=habitStreak(x),r=habitRate(x),open=UI.openHabit===x.id;let best=0,cur=0;for(let i=364;i>=0;i--){if(habitDone(x.id,ymd(addDays(new Date(),-i)))){cur++;best=Math.max(best,cur)}else cur=0}
     h+=`<div class="card" style="--hc:${esc(x.color||'#4ade80')}"><div class="split" data-a="openHabit" data-id="${esc(x.id)}" role="button" aria-expanded="${open}" style="cursor:pointer"><h3>${esc(x.icon||'✨')} ${esc(x.title)}</h3><span class="muted small">${(x.target||7)>=7?'Daily':x.target+'×/week'} ${open?'▾':'▸'}</span></div>
@@ -1188,6 +1205,129 @@ function vReview(){
     <div class="btns" style="margin-top:12px;align-items:center"><button class="btn pri" data-a="saveReview" data-week="${from}">Save review</button>${rv.at?`<span class="tiny muted">Saved ${esc(new Date(rv.at).toLocaleString([], {weekday:'short',day:'numeric',month:'short',hour:'numeric',minute:'2-digit'}))}</span>`:''}</div>
     <p class="tiny muted" style="margin-bottom:0">Your “focus for next week” shows on Today all next week.</p></div></section>`;
   return h}
+
+/* ================================================================ CHARTS — interactive SVG: tap/hover a mark for its value */
+const SER=['#338ced','#e76624','#00a888','#d28e05','#e24d8b','#0aac23'],OTHER='#5c5e66';
+const CH={};let CHN=0;
+const tipA=(v,l)=>`data-tip="${esc(v)}" data-tipl="${esc(l||'')}" tabindex="0"`;
+const barPath=(x,y,w,h,r=4)=>{if(h<=0)return'';r=Math.min(r,w/2,h);return `M${x},${y+h}V${y+r}Q${x},${y} ${x+r},${y}H${x+w-r}Q${x+w},${y} ${x+w},${y+r}V${y+h}Z`};
+/* rows: [{lab, segs:[{v,c}] bottom→top, tip:[value,label], hi, act:'data-a=… attrs', top:'label over bar'}] */
+function barsSVG(rows,o={}){const W=350,H=o.h||130,T=18,B=H-22,n=rows.length,slot=(W-8)/n,bw=Math.min(o.bw||34,slot*.66);
+  const tot=r=>r.segs.reduce((a,x)=>a+(+x.v||0),0),max=Math.max(o.min||1,o.max||0,...rows.map(tot),o.goal||0),sc=v=>v/max*(B-T);
+  let g='';
+  if(o.goal){const y=B-sc(o.goal);g+=`<line x1="4" x2="${W-4}" y1="${y}" y2="${y}" stroke="var(--faint)" stroke-dasharray="4 4"/><text x="${W-4}" y="${y-4}" text-anchor="end" font-size="9" fill="var(--faint)">${esc(o.goalL||'goal')}</text>`}
+  g+=`<line x1="4" x2="${W-4}" y1="${B+.5}" y2="${B+.5}" stroke="var(--line)"/>`;
+  rows.forEach((r,i)=>{const cx=4+slot*i+slot/2,x=cx-bw/2,t=tot(r);let y=B,parts='';
+    const vis=r.segs.filter(sg=>+sg.v>0);
+    vis.forEach((sg,j)=>{const hgt=Math.max(1.5,sc(+sg.v)-(j?2:0)),top=j===vis.length-1;y-=hgt+(j?2:0);
+      parts+=top?`<path d="${barPath(x,y,bw,hgt)}" fill="${sg.c}"/>`:`<rect x="${x}" y="${y}" width="${bw}" height="${hgt}" fill="${sg.c}"/>`});
+    if(!vis.length)parts=`<rect x="${x}" y="${B-2}" width="${bw}" height="2" rx="1" fill="var(--line)"/>`;
+    g+=`<g class="hb${r.hi?' hi':''}" ${tipA(r.tip[0],r.tip[1])} ${r.act||''} role="img" aria-label="${esc(r.lab)}: ${esc(r.tip[0])}"><rect x="${4+slot*i}" y="0" width="${slot}" height="${H}" fill="transparent"/>${parts}
+      ${r.top?`<text x="${cx}" y="${Math.max(10,B-sc(t)-5)}" text-anchor="middle" font-size="10" fill="var(--text)" font-weight="600">${esc(r.top)}</text>`:''}
+      <text x="${cx}" y="${H-6}" text-anchor="middle" font-size="11" fill="${r.hi?'var(--text)':'var(--mute)'}" font-weight="${r.hi?700:400}">${esc(r.lab)}</text></g>`});
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="group" aria-label="${esc(o.label||'Bar chart')}">${g}</svg>`}
+/* pts: [{lab, v, tip}] — area line with a crosshair that snaps to the nearest point */
+function lineSVG(pts,o={}){const id='c'+(++CHN),W=350,H=o.h||140,L=8,R=8,T=16,B=H-22,n=pts.length,c=o.color||'var(--acc)';
+  const max=Math.max(o.min||1,o.max||0,o.goal||0,...pts.map(p=>p.v))*1.08,xs=pts.map((_,i)=>n<2?W/2:L+i*(W-L-R)/(n-1)),ys=pts.map(p=>B-p.v/max*(B-T));
+  CH[id]={xs,ys,tips:pts.map(p=>[o.fmt?o.fmt(p.v):String(p.v),p.tip||p.lab])};
+  const line=xs.map((x,i)=>`${i?'L':'M'}${x.toFixed(1)},${ys[i].toFixed(1)}`).join('');
+  const ticks=(o.ticks||[0,Math.floor((n-1)/2),n-1]).filter((v,i,a)=>a.indexOf(v)===i&&v<n);
+  const mx=ys.indexOf(Math.min(...ys));
+  return `<svg class="chart lc" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(o.label||'Trend')}: ${pts.map(p=>p.lab+' '+(o.fmt?o.fmt(p.v):p.v)).join(', ')}">
+    <defs><linearGradient id="${id}g" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="${c}" stop-opacity=".35"/><stop offset="1" stop-color="${c}" stop-opacity="0"/></linearGradient></defs>
+    ${[.5,1].map(f=>`<line x1="${L}" x2="${W-R}" y1="${B-(B-T)*f}" y2="${B-(B-T)*f}" stroke="var(--line)" stroke-dasharray="2 4"/>`).join('')}
+    <line x1="${L}" x2="${W-R}" y1="${B+.5}" y2="${B+.5}" stroke="var(--line)"/>
+    ${o.goal?`<line x1="${L}" x2="${W-R}" y1="${B-o.goal/max*(B-T)}" y2="${B-o.goal/max*(B-T)}" stroke="var(--faint)" stroke-dasharray="4 4"/><text x="${L}" y="${B-o.goal/max*(B-T)-4}" font-size="9" fill="var(--faint)">${esc(o.goalL||'goal')}</text>`:''}
+    <path d="${line}L${xs[n-1]},${B}L${xs[0]},${B}Z" fill="url(#${id}g)"/><path d="${line}" fill="none" stroke="${c}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" class="ln"/>
+    ${pts[mx]&&pts[mx].v>0?`<circle cx="${xs[mx]}" cy="${ys[mx]}" r="3.5" fill="${c}"/><text x="${Math.min(W-R-2,Math.max(L+2,xs[mx]))}" y="${ys[mx]-8}" text-anchor="${xs[mx]>W-40?'end':xs[mx]<40?'start':'middle'}" font-size="10" font-weight="600" fill="var(--text)">${esc(o.fmt?o.fmt(pts[mx].v):pts[mx].v)}</text>`:''}
+    ${ticks.map(i=>`<text x="${xs[i]}" y="${H-6}" text-anchor="${i===0?'start':i===n-1?'end':'middle'}" font-size="10.5" fill="var(--mute)">${esc(pts[i].lab)}</text>`).join('')}
+    <line class="xl" id="${id}l" x1="0" x2="0" y1="${T-6}" y2="${B}" stroke="var(--mute)" stroke-width="1"/><circle class="xd" id="${id}d" r="5" fill="${c}" stroke="var(--card)" stroke-width="2"/>
+    <rect class="xh" data-ch="${id}" x="0" y="0" width="${W}" height="${H}" fill="transparent" tabindex="0" aria-label="Explore values: use arrow keys"/></svg>`}
+/* segs: [{lab,v,c}] — donut with a 2px gap between slices */
+function donutSVG(segs,center,sub){const S=168,r=64,sw=22,C=2*Math.PI*r,tot=segs.reduce((a,x)=>a+x.v,0)||1;let off=0;
+  const arcs=segs.map(x=>{const len=x.v/tot*C,gap=segs.length>1?Math.min(2,len/2):0,a=`<circle class="dn" cx="${S/2}" cy="${S/2}" r="${r}" fill="none" stroke="${x.c}" stroke-width="${sw}" stroke-dasharray="${Math.max(.1,len-gap)} ${C}" stroke-dashoffset="${-off}" transform="rotate(-90 ${S/2} ${S/2})" ${tipA(x.tipV||'',x.tipL||x.lab)} role="img" aria-label="${esc(x.lab)}: ${esc(x.tipV||'')}"/>`;off+=len;return a}).join('');
+  return `<svg class="donut" viewBox="0 0 ${S} ${S}" width="${S}" height="${S}">${arcs}<text x="50%" y="${S/2-4}" text-anchor="middle" font-size="22" font-weight="700" fill="var(--text)">${esc(center)}</text><text x="50%" y="${S/2+16}" text-anchor="middle" font-size="11" fill="var(--mute)">${esc(sub)}</text></svg>`}
+const legendRow=(c,lab,val,pct)=>`<div class="lg-r"><i style="background:${c}"></i><span class="grow">${esc(lab)}</span><b>${esc(val)}</b>${pct!=null?`<span class="muted">${pct}%</span>`:''}</div>`;
+
+/* Study: 12-week trend, time split by subject, topic confidence */
+function trendHTML(ss,goal){const ws=weekStart(new Date()),pts=[];
+  for(let k=11;k>=0;k--){const a=addDays(ws,-7*k),from=ymd(a),to=ymd(addDays(a,6));const m=ss.reduce((t,s)=>t+(s.date>=from&&s.date<=to?+s.mins||0:0),0);
+    pts.push({lab:k===0?'This wk':`${a.getDate()} ${MONL[a.getMonth()].slice(0,3)}`,v:m/60,tip:k===0?'This week':'Week of '+fmtDate(from)})}
+  const done=pts.slice(0,11),avg=done.reduce((a,p)=>a+p.v,0)/11,last=pts[11].v,prev=pts[10].v;
+  return `<section aria-labelledby="h-tr"><h2 id="h-tr">📈 12-week trend</h2><div class="card">
+    <div class="split small" style="margin-bottom:4px"><span class="muted">Avg <b style="color:var(--text)">${avg.toFixed(1)}h</b>/week</span><span class="muted">Last full week <b style="color:var(--text)">${prev.toFixed(1)}h</b> ${prev>=avg?'▲':'▼'}</span></div>
+    ${lineSVG(pts,{fmt:v=>hrs(Math.round(v*60))||'0m',goal:goal||0,goalL:goal?`goal ${goal}h`:'',label:'Study hours per week, last 12 weeks',color:'var(--study)',ticks:[0,4,8,11]})}
+    <p class="tiny muted" style="margin:4px 0 0">Drag across the chart to see each week.</p></div></section>`}
+function splitHTML(ss){const R=UI.splitR||'30d',from=R==='All'?'':ymd(addDays(new Date(),R==='30d'?-29:-89));
+  const ids=[...new Set(all('sessions').map(s=>s.paper))].filter(id=>paperOf(id)).sort();const colorOf=id=>{const i=ids.indexOf(id);return i>=0&&i<SER.length?SER[i]:OTHER};
+  const by={};ss.forEach(s=>{if(from&&s.date<from)return;const k=paperOf(s.paper)?s.paper:'_';by[k]=(by[k]||0)+(+s.mins||0)});
+  let segs=Object.entries(by).filter(e=>e[1]>0).map(([id,m])=>{const p=paperOf(id);return{id,lab:p?p.code:'General',m,c:p?colorOf(id):OTHER}}).sort((a,b)=>b.m-a.m);
+  const oth=segs.filter(x=>x.c===OTHER);if(oth.length>1){segs=segs.filter(x=>x.c!==OTHER);segs.push({id:'_o',lab:'Other',m:oth.reduce((a,x)=>a+x.m,0),c:OTHER})}
+  const tot=segs.reduce((a,x)=>a+x.m,0);
+  const seg=`<div class="seg sm" role="group" aria-label="Range">${['30d','90d','All'].map(k=>`<button data-a="splitR" data-v="${k}" class="${k===R?'on':''}" aria-pressed="${k===R}">${k==='All'?'All time':'Last '+k.replace('d',' days')}</button>`).join('')}</div>`;
+  if(!tot)return `<section aria-labelledby="h-sp"><h2 id="h-sp">🍩 Where your time goes</h2><div class="card">${seg}<p class="small muted" style="margin:10px 0 0">No study logged in this range.</p></div></section>`;
+  segs.forEach(x=>{x.v=x.m;x.tipV=hrs(x.m)+' · '+Math.round(x.m/tot*100)+'%';x.tipL=x.lab});
+  return `<section aria-labelledby="h-sp"><h2 id="h-sp">🍩 Where your time goes</h2><div class="card">${seg}
+    <div class="dn-w">${donutSVG(segs,hrs(tot),R==='All'?'all time':'last '+R.replace('d',' days'))}<div class="lg grow">${segs.map(x=>legendRow(x.c,x.lab,hrs(x.m),Math.round(x.m/tot*100))).join('')}</div></div></div></section>`}
+const CONF_C=['#2c2d33','#4b3f78','#7a63c9','#b9a6fb'];
+function confBar(tp){const n=[0,0,0,0];tp.forEach(x=>n[+x.conf||0]++);const tot=tp.length;
+  return `<div class="cb" role="group" aria-label="Topic confidence">${[3,2,1,0].filter(i=>n[i]).map(i=>`<i style="flex:${n[i]};background:${CONF_C[i]}" ${tipA(n[i]+' topic'+(n[i]>1?'s':''),CONF_L[i]+' · '+Math.round(n[i]/tot*100)+'%')} role="img" aria-label="${CONF_L[i]}: ${n[i]}"></i>`).join('')}</div>
+  <div class="cb-k tiny muted">${[3,2,1,0].map(i=>`<span><i style="background:${CONF_C[i]}"></i>${CONF_L[i]} ${n[i]}</span>`).join('')}</div>`}
+/* Today: tasks finished per day, last 14 days */
+function doneChartHTML(){const t=new Date(),days=[...Array(14)].map((_,i)=>ymd(addDays(t,i-13))),cnt={};
+  all('tasks').forEach(x=>{if(x.done&&x.doneAt){const d=x.doneAt.slice(0,10);if(d>=days[0])cnt[d]=(cnt[d]||0)+1}});
+  const vals=days.map(d=>cnt[d]||0),sum=vals.reduce((a,b)=>a+b,0);if(!sum)return'';
+  const best=Math.max(...vals),avg=sum/14;
+  return `<section aria-labelledby="h-dc"><h2 id="h-dc">📊 Last 14 days</h2><div class="card"><div class="split small" style="margin-bottom:4px"><span class="muted"><b style="color:var(--text)">${sum}</b> tasks done</span><span class="muted">avg <b style="color:var(--text)">${avg.toFixed(1)}</b>/day · best ${best}</span></div>
+    ${barsSVG(days.map((d,i)=>{const p=pd(d),v=vals[i],td=i===13;return{lab:i%2&&!td?'':td?'Today':String(p.getDate()),segs:[{v,c:td?'var(--today)':'#1f6f66'}],tip:[v+' done',fmtDate(d)],hi:td,top:td&&v?String(v):v===best&&best&&!td&&vals.indexOf(best)===i?String(v):''}}),{label:'Tasks done per day, last 14 days',bw:16,min:3})}</div></section>`}
+/* Plan: this week's load — done vs open per day, tap a day to open it */
+function weekLoadHTML(ws,sel){const tasks=all('tasks'),t=todayS();
+  const rows=[...Array(7)].map((_,i)=>{const d=ymd(addDays(ws,i)),dn=tasks.filter(x=>x.date===d&&x.done).length,op=tasks.filter(x=>x.date===d&&!x.done).length,late=d<t&&op;
+    return{lab:DOW[addDays(ws,i).getDay()],segs:[{v:dn,c:'var(--plan)'},{v:op,c:late?'#7f3b3b':'#2b3f5c'}],tip:[`${dn} done · ${op} open`,fmtDate(d)+(late?' · overdue':'')],hi:d===sel,act:`data-a="planDay" data-date="${d}"`}});
+  const dn=rows.reduce((a,r)=>a+r.segs[0].v,0),op=rows.reduce((a,r)=>a+r.segs[1].v,0);if(!dn&&!op)return'';
+  return `<div class="card" style="margin-top:10px"><div class="split small" style="margin-bottom:2px"><span class="muted">Week load · <b style="color:var(--text)">${dn}</b> done of ${dn+op}</span><span class="lgk tiny"><span><i style="background:var(--plan)"></i>Done</span><span><i style="background:#2b3f5c"></i>Open</span></span></div>
+    ${barsSVG(rows,{label:'Tasks per day this week, done and open',h:110,bw:28,min:3})}</div>`}
+/* Close: progress by working day */
+function closeWdHTML(p,items,t){const wds=[...new Set(items.map(i=>i.wd||1))].sort((a,b)=>a-b);
+  const rows=wds.map(w=>{const it=items.filter(i=>(i.wd||1)===w),dn=it.filter(i=>closeDone(p,i.id)).length,due=wdDate(p,w),op=it.length-dn,late=op&&due<t;
+    return{lab:'WD'+w,segs:[{v:dn,c:'var(--close)'},{v:op,c:late?'#7f3b3b':'#3a3220'}],tip:[`${dn}/${it.length} done`,fmtDate(due)+(late?` · ${op} overdue`:due===t?' · due today':'')],hi:due===t,top:''}});
+  return `<div class="card" style="margin-top:10px"><div class="split small"><span class="muted">By working day</span><span class="lgk tiny"><span><i style="background:var(--close)"></i>Done</span><span><i style="background:#3a3220"></i>Open</span><span><i style="background:#7f3b3b"></i>Overdue</span></span></div>${barsSVG(rows,{label:'Close items by working day',h:110,bw:30,min:2})}</div>`}
+/* Habits: daily consistency and best weekdays */
+function habitTrendHTML(hs){if(!hs.length)return'';const t=new Date();
+  const day=[...Array(36)].map((_,i)=>{const d=ymd(addDays(t,i-35));return{d,n:hs.filter(h=>habitDone(h.id,d)).length}});
+  const pts=day.slice(6).map((x,i)=>{const w=day.slice(i,i+7),v=Math.round(w.reduce((a,y)=>a+y.n,0)/(7*hs.length)*100);return{lab:i===29?'Today':fmtDate(x.d).replace(/^\w+ /,''),v,tip:fmtDate(x.d)+` · ${x.n}/${hs.length} that day · 7-day avg`}});
+  const wk=[0,0,0,0,0,0,0],cn=[0,0,0,0,0,0,0];for(let i=0;i<84;i++){const dt=addDays(t,-i),d=ymd(dt),k=(dt.getDay()+6)%7;cn[k]+=hs.length;wk[k]+=hs.filter(h=>habitDone(h.id,d)).length}
+  const rate=wk.map((v,i)=>cn[i]?Math.round(v/cn[i]*100):0),best=Math.max(...rate),avg=Math.round(pts.reduce((a,p)=>a+p.v,0)/30);
+  return `<section aria-labelledby="h-hc"><h2 id="h-hc">📈 Consistency</h2><div class="card"><div class="split small" style="margin-bottom:4px"><span class="muted">30-day average <b style="color:var(--text)">${avg}%</b></span><span class="muted">7-day rolling average</span></div>
+    ${lineSVG(pts,{fmt:v=>v+'%',max:100,label:'Share of habits done per day, last 30 days',color:'var(--habit)',ticks:[0,15,29]})}</div>
+    <div class="card" style="margin-top:10px"><div class="small muted" style="margin-bottom:2px">Best days · last 12 weeks</div>
+    ${barsSVG(rate.map((r,i)=>({lab:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][i],segs:[{v:r,c:r===best&&best?'var(--habit)':'#1e5a35'}],tip:[r+'%',['Mondays','Tuesdays','Wednesdays','Thursdays','Fridays','Saturdays','Sundays'][i]+' · habits done'],hi:r===best&&best>0,top:r===best&&best?r+'%':''})),{label:'Habit completion by weekday',h:110,max:100,bw:28})}</div></section>`}
+
+/* tooltip + crosshair layer (one floating tip, values set with textContent) */
+const ctip=document.createElement('div');ctip.id='ctip';ctip.setAttribute('role','tooltip');document.body.appendChild(ctip);
+let tipEl=null,tipT=0;
+function tipShow(val,lab,x,y){ctip.replaceChildren();const b=document.createElement('b');b.textContent=val;ctip.appendChild(b);if(lab){const s=document.createElement('span');s.textContent=lab;ctip.appendChild(s)}
+  ctip.classList.add('on');const w=ctip.offsetWidth,h=ctip.offsetHeight;let top=y-h-14;if(top<8)top=y+18;
+  ctip.style.left=Math.max(8,Math.min(innerWidth-w-8,x-w/2))+'px';ctip.style.top=top+'px';clearTimeout(tipT)}
+function tipHide(){ctip.classList.remove('on');if(tipEl){tipEl.classList.remove('tipon');tipEl=null}document.querySelectorAll('.lc.xon').forEach(s=>s.classList.remove('xon'))}
+function tipFor(el,x,y){if(tipEl&&tipEl!==el)tipEl.classList.remove('tipon');tipEl=el;el.classList.add('tipon');
+  if(x==null){const r=el.getBoundingClientRect();x=r.left+r.width/2;y=r.top}tipShow(el.dataset.tip,el.dataset.tipl,x,y)}
+function xhAt(rect,cx,cy){const c=CH[rect.dataset.ch];if(!c)return;const svg=rect.ownerSVGElement,m=svg.getScreenCTM();if(!m)return;
+  const px=(cx-m.e)/m.a;let i=0;c.xs.forEach((x,j)=>{if(Math.abs(x-px)<Math.abs(c.xs[i]-px))i=j});
+  const id=rect.dataset.ch,l=document.getElementById(id+'l'),d=document.getElementById(id+'d');l.setAttribute('x1',c.xs[i]);l.setAttribute('x2',c.xs[i]);d.setAttribute('cx',c.xs[i]);d.setAttribute('cy',c.ys[i]);
+  svg.classList.add('xon');rect._i=i;tipShow(c.tips[i][0],c.tips[i][1],m.a*c.xs[i]+m.e,m.d*c.ys[i]+m.f)}
+(()=>{const v=document.getElementById('view');
+  v.addEventListener('pointermove',e=>{const r=e.target.closest&&e.target.closest('.xh');if(r){xhAt(r,e.clientX,e.clientY);return}
+    if(e.pointerType==='mouse'){const el=e.target.closest&&e.target.closest('[data-tip]');if(el)tipFor(el,e.clientX,e.clientY);else if(tipEl||ctip.classList.contains('on'))tipHide()}});
+  v.addEventListener('pointerdown',e=>{const r=e.target.closest('.xh');if(r){xhAt(r,e.clientX,e.clientY);return}
+    const el=e.target.closest('[data-tip]');if(el&&e.pointerType!=='mouse'){tipFor(el,e.clientX,e.clientY);tipT=setTimeout(tipHide,2600)}else if(!el)tipHide()});
+  v.addEventListener('pointerleave',e=>{if(e.pointerType==='mouse')tipHide()});
+  v.addEventListener('pointerup',e=>{if(e.target.closest('.xh')&&e.pointerType!=='mouse'){clearTimeout(tipT);tipT=setTimeout(tipHide,2600)}});
+  v.addEventListener('focusin',e=>{const el=e.target.closest('[data-tip]');if(el)tipFor(el)});
+  v.addEventListener('keydown',e=>{const r=e.target.closest&&e.target.closest('.xh');if(!r||!['ArrowLeft','ArrowRight'].includes(e.key))return;e.preventDefault();const c=CH[r.dataset.ch],m=r.ownerSVGElement.getScreenCTM();
+    const i=Math.max(0,Math.min(c.xs.length-1,(r._i??c.xs.length-1)+(e.key==='ArrowLeft'?-1:1)));xhAt(r,m.a*c.xs[i]+m.e,0)});
+  v.addEventListener('focusout',()=>setTimeout(()=>{if(!v.contains(document.activeElement)||!document.activeElement.closest('[data-tip],.xh'))tipHide()},0));
+  addEventListener('scroll',()=>{if(ctip.classList.contains('on'))tipHide()},{passive:true})})();
 
 /* ================================================================ render */
 const VIEWS={today:['Today',vToday],plan:['Plan',vPlan],study:['Study',vStudy],close:['Close',vClose],habits:['Habits',vHabits],review:['Weekly review',vReview]};
@@ -1607,6 +1747,7 @@ const A={
   // show / hide the app key; hides itself again after 30 s so it isn't left on screen
   sideToggle:()=>{const off=document.body.classList.toggle('side-off');try{localStorage.setItem('flow.sideOff',off?'1':'')}catch(e){}
     const b=off?$('.side-open'):$('.side-tog');if(b&&document.activeElement&&document.activeElement.closest('.tabs,.side-open'))b.focus()},
+  splitR:d=>{UI.splitR=d.v;render()},
   showMore:d=>{(UI.more=UI.more||{})[d.k]=1;render()},
   toggleKey:(d,el)=>{const i=$('#s_key');if(!i)return;const show=i.type==='password';i.type=show?'text':'password';el.setAttribute('aria-pressed',show);el.setAttribute('aria-label',show?'Hide app key':'Show app key');el.innerHTML=show?EYE_OFF:EYE;
     clearTimeout(i._hide);if(show)i._hide=setTimeout(()=>{if(i.isConnected&&i.type==='text')A.toggleKey({},el)},30000)},
@@ -1675,7 +1816,7 @@ $('#fileIn').addEventListener('change',async e=>{const f=e.target.files[0];e.tar
     if(busy||e.touches.length!==1||$('#sheet').classList.contains('open')||!ORDER.includes(META.tab))return;
     const t=e.touches[0];
     if(t.clientX<24||t.clientX>innerWidth-24)return;               // leave screen edges to the browser's back/forward gesture
-    if(e.target.closest('input,textarea,select,[contenteditable]')||inHScroll(e.target))return;
+    if(e.target.closest('input,textarea,select,[contenteditable],.lc')||inHScroll(e.target))return;
     sx=t.clientX;sy=t.clientY;dx=0;trail=[[performance.now(),0]];mode='wait';
   },{passive:true});
   view.addEventListener('touchmove',e=>{
