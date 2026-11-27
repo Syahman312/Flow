@@ -190,6 +190,7 @@ label.f>span{display:block;font-size:12.5px;color:var(--mute);margin-bottom:5px;
 .kpi span{font-size:11.5px;color:var(--mute)}
 .split{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
 .wdh{font-size:12px;color:var(--mute);padding:10px 12px 4px;font-weight:650;background:var(--card);border-bottom:1px solid var(--line)}
+.row.ci{cursor:default;align-items:flex-start}.ci-btns{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .row.more{justify-content:center;width:100%;color:var(--acc);font-weight:600;font-size:13.5px}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 @media(max-width:360px){body{font-size:14px}.top h1{font-size:21px}.kpis{grid-template-columns:repeat(2,1fr)}.hgrid{grid-template-columns:minmax(0,1fr) repeat(7,28px);gap:3px}.hdot{width:28px;height:28px}.timer .tt{font-size:26px}.pill{max-width:38vw}}
@@ -314,7 +315,7 @@ label.f>span{display:block;font-size:12.5px;color:var(--mute);margin-bottom:5px;
 'use strict';
 try{if(localStorage.getItem('flow.sideOff'))document.body.classList.add('side-off')}catch(e){}
 /* ================================================================ basics */
-const APP_VERSION='2.10.1';
+const APP_VERSION='2.11.0';
 const APP_TITLE='Flow — Today, Plan, Study, Close & Habits';
 const $=(s,r=document)=>r.querySelector(s);
 const pad=n=>String(n).padStart(2,'0');
@@ -675,15 +676,31 @@ const clsLegacySid=(c,d)=>`cls_${c.id}_${d}`; // attendance logged by v2.6
 const live=id=>{const r=DB.sessions[id];return!!(r&&!r.deleted)};
 const attended=(c,d)=>live(clsSid(c,d))||(live(clsLegacySid(c,d))&&(classesOn(d).find(x=>x.id===c.id)||{}).start===c.start);
 const clsStarted=(c,d)=>{const t=todayS();return d<t||(d===t&&new Date().getHours()*60+new Date().getMinutes()>=tToMin(c.start))};
-function setAttended(c,d,on,extraNote){
+function setAttended(c,d,on,extraNote,mins){
   if(!on){[clsSid(c,d),clsLegacySid(c,d)].forEach(id=>{if(live(id))remove('sessions',id,{silent:true})});return}
-  if(attended(c,d))return;const p=c.paper&&paperOf(c.paper),m=clsMins(c);
+  if(attended(c,d))return;const p=c.paper&&paperOf(c.paper),m=mins||clsMins(c);
   put('sessions',{id:clsSid(c,d),title:`${p?p.code:c.title} · class · ${m} min`,paper:c.paper||'',topic:'',date:d,mins:m,kind:'Class',note:c.title+(extraNote?' '+extraNote:''),deleted:false},{silent:true})}
 const isUrl=v=>/^https?:\/\//i.test(v||'');
 const clsWhere=c=>c.where?(isUrl(c.where)?'online link':c.where):'';
 function classRow(c,d,opt={}){const att=d&&attended(c,d),p=c.paper&&paperOf(c.paper);
   return `<div class="row cls ${att?'att':''}" data-a="editClass" data-id="${esc(c.id)}">${opt.time!==false?`<div class="time">${fmtTime(c.start)}</div><div class="bar-l" style="background:var(--study)"></div>`:''}<div class="grow"><div class="t-title">🎓 ${esc(c.title)}</div><div class="meta">${opt.time===false?`<span>${fmtTime(c.start)}–${fmtTime(c.end)}</span>`:`<span>until ${fmtTime(c.end)}</span>`}${p?`<span class="tag ACCA">${esc(p.code)}</span>`:''}<span>${esc(c.mode||'In person')}${clsWhere(c)?' · '+esc(clsWhere(c)):''}</span>${c.tutor?`<span>${esc(c.tutor)}</span>`:''}${c.to&&c.to<todayS()?'<span class="tag">ended</span>':''}${att?`<span class="tag good">attended · ${hrs(clsMins(c))} logged</span>`:''}</div></div>
     ${isUrl(c.where)&&c.mode==='Online'?`<a class="btn sm" data-a="ext" href="${esc(c.where)}" target="_blank" rel="noopener noreferrer">Join</a>`:''}${d&&clsStarted(c,d)?`<button class="check-wrap" data-a="attend" data-id="${esc(c.id)}" data-date="${d}" data-start="${esc(c.start)}" aria-pressed="${att}" aria-label="${att?'Undo attended':'Mark attended'}: ${esc(c.title)}"><span class="check">${CHECK}</span></button>`:''}</div>`}
+/* ---------- class check-in: once a class starts, Today asks you to log it (today + yesterday) */
+const clsSkipped=(c,d)=>!!(META.prefs.clsSkip||{})[clsSid(c,d)];
+function dueClasses(){const n=new Date(),nm=n.getHours()*60+n.getMinutes(),t=todayS(),out=[];
+  for(const d of[ymd(addDays(n,-1)),t])classesOn(d).forEach(c=>{if(attended(c,d)||clsSkipped(c,d)||(d===t&&nm<tToMin(c.start)))return;
+    out.push({c,d,now:d===t&&nm<tToMin(c.end)})});return out}
+function checkInCard(){const due=dueClasses();if(!due.length)return'';
+  return `<section aria-labelledby="h-ci"><h2 id="h-ci">🎓 Class check-in</h2><div class="list">${due.map(({c,d,now})=>{const p=c.paper&&paperOf(c.paper),a=`data-id="${esc(c.id)}" data-date="${d}" data-start="${esc(c.start)}"`;
+    return `<div class="row ci"><div class="grow"><div class="t-title">${esc(c.title)}${p?` <span class="tag ACCA">${esc(p.code)}</span>`:''}</div>
+      <div class="meta"><span>${now?`On now · until ${fmtTime(c.end)}`:`${d===todayS()?'Today':'Yesterday'} · ${fmtTime(c.start)}–${fmtTime(c.end)}`}</span></div>
+      <div class="ci-btns"><button class="btn sm pri" data-a="ciLog" ${a}>✓ Log ${hrs(clsMins(c))}</button><button class="btn sm" data-a="ciEdit" ${a}>Other time</button><button class="btn sm" data-a="ciSkip" ${a}>Missed</button></div></div></div>`}).join('')}</div></section>`}
+// alert once when a class ends (only while Flow is open in the background, with alerts allowed)
+function classEndAlerts(){if(!('Notification'in window)||Notification.permission!=='granted')return;const n=Date.now(),t=todayS(),nm=new Date().getHours()*60+new Date().getMinutes(),seen=META.clsSeen||(META.clsSeen={});
+  dueClasses().forEach(({c,d,now})=>{const id=clsSid(c,d);if(now||seen[id]||d!==t||nm-tToMin(c.end)>180)return;seen[id]=n;persist();
+    notify(`🎓 ${c.title} finished`,`Open Flow to log ${hrs(clsMins(c))} of study time.`)});
+  for(const k in seen)if(n-seen[k]>14*864e5)delete seen[k]}
+const findCls=d=>classesOn(d.date).find(x=>x.id===d.id&&x.start===d.start);
 function nextClass(){const n=new Date(),nm=n.getHours()*60+n.getMinutes();for(let i=0;i<15;i++){const d=ymd(addDays(n,i)),c=classesOn(d).find(c=>i>0||tToMin(c.start)>nm);if(c)return{c,d}}return null}
 function timetableHTML(){const cl=CLS(),t=todayS();
   if(!cl.length)return `<section aria-labelledby="h-tt"><h2 id="h-tt">🗓 Class timetable</h2><div class="card"><p class="small muted" style="margin:0 0 10px">Add your weekly ACCA classes. They show in your daily schedule, and one tap after class logs the hours to Study.</p><button class="btn sm pri" data-a="newClass">+ Add a class</button></div></section>`;
@@ -796,7 +813,7 @@ function vToday(){
     <div class="grow"><h2 id="h-hero" class="sr">Your day</h2><div class="big">${greet()}${name}</div>
     <div class="muted small">${total?`${dn} of ${total} done today`:'Nothing planned yet — add something below'}</div>
     <div class="chips"><span class="chip" title="Days in a row with something done">🔥 ${S.streak}-day streak</span><span class="chip" title="${S.toNext} XP to next level">⭐ Lv ${S.lvl} · ${S.xp} XP</span></div>
-    <div class="bar" aria-hidden="true"><i style="width:${Math.round(S.pct*100)}%"></i></div></div></div></section>${weekFocusLine()}
+    <div class="bar" aria-hidden="true"><i style="width:${Math.round(S.pct*100)}%"></i></div></div></div></section>${weekFocusLine()}${checkInCard()}
   <section><form class="quick" data-form="quick" autocomplete="off"><label class="sr" for="qa">Quick add task</label><input id="qa" name="q" placeholder="Add a task… try “IC recon tmr 3pm #work !high”" enterkeyhint="done"><button class="btn pri" aria-label="Add task">Add</button></form></section>`;
 
   // Top 3
@@ -1308,6 +1325,18 @@ const A={
     if(!d.id&&from&&from<todayS()){UI.pastWeeks=Math.min(104,Math.ceil(dayDiff(todayS(),from)/7)+1);pastSheet(c.id);toast('🎓 Class added — tick the ones you attended')}
     else{closeSheet();toast(d.id?'Class updated':'🎓 Class added')}},
   delClass:d=>{if(!confirm('Delete this class from your timetable? Hours already logged stay in Study.'))return;META.prefs.classes=CLS().filter(x=>x.id!==d.id);savePrefs();closeSheet();render();toast('Class deleted')},
+  ciLog:d=>A.attend(d),
+  ciSkip:d=>{const c=findCls(d);if(!c)return;const sk=Object.assign({},META.prefs.clsSkip||{}),cut=ymd(addDays(new Date(),-14));
+    for(const k in sk)if((k.match(/_(\d{4}-\d{2}-\d{2})_\d{4}$/)||[])[1]<cut)delete sk[k];
+    sk[clsSid(c,d.date)]=1;META.prefs.clsSkip=sk;savePrefs();render();toast('Marked as missed')},
+  ciEdit:d=>{const c=findCls(d);if(!c)return;const a=`data-id="${esc(c.id)}" data-date="${d.date}" data-start="${esc(c.start)}"`;
+    openSheet(`<h2 class="st" id="sheetTitle">Log ${esc(c.title)}</h2><p class="muted small" style="margin:0">${fmtDate(d.date)} · planned ${fmtTime(c.start)}–${fmtTime(c.end)}</p>
+    <div class="grid2"><label class="f"><span>Arrived</span><input id="ci_s" type="time" value="${esc(c.start)}"></label><label class="f"><span>Left</span><input id="ci_e" type="time" value="${esc(c.end)}"></label></div>
+    <label class="f"><span>What did you cover? (optional)</span><input id="ci_note" maxlength="200" placeholder="e.g. IFRS 16 leases"></label>
+    <div class="foot"><button class="btn pri" data-a="ciSave" ${a}>Log study time</button></div>`)},
+  ciSave:d=>{const c=findCls(d);if(!c)return;const s=val('ci_s'),e=val('ci_e'),m=s&&e?tToMin(e)-tToMin(s):0;
+    if(m<=0){toast('Left time must be after arrived time');return}
+    setAttended(c,d.date,true,val('ci_note'),m);closeSheet();buzz(8);render();const p=c.paper&&paperOf(c.paper);toast(`🎓 ${hrs(m)} class logged${p?' to '+p.code:''}`)},
   attend:d=>{const c=classesOn(d.date).find(x=>x.id===d.id&&x.start===d.start);if(!c)return;
     if(attended(c,d.date)){setAttended(c,d.date,false);render();toast('Attendance removed');return}
     setAttended(c,d.date,true);buzz(8);render();const p=c.paper&&paperOf(c.paper),m=clsMins(c);toast(`🎓 ${hrs(m)} class logged${p?' to '+p.code:''} · +${Math.round(m/2)} XP`)},
@@ -1519,7 +1548,7 @@ idle(()=>{
   sync();
 });
 // re-render at midnight & keep the now-line fresh
-setInterval(()=>{if(document.visibilityState==='visible'&&Date.now()-lastRender>6e4&&!$('#sheet').classList.contains('open'))render(true)},6e4);
+setInterval(()=>{try{classEndAlerts()}catch(e){}if(document.visibilityState==='visible'&&Date.now()-lastRender>6e4&&!$('#sheet').classList.contains('open'))render(true)},6e4);
 </script>
 </body>
 </html>

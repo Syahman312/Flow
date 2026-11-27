@@ -2,7 +2,7 @@
    Pages: network first (so updates show up), fall back to cache offline.
    Icons/images: cache first. Never touches requests to Google (sync).
    Keep CACHE in step with APP_VERSION in index.html. */
-const CACHE = 'flow-v2.10.1';
+const CACHE = 'flow-v2.11.0';
 const SHELL = ['index.html', 'about/index.html', 'manifest.json', 'favicon.svg', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'];
 
 /* One cache entry per page: drop the query string (?tab=plan …) and map
