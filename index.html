@@ -192,7 +192,7 @@ label.f>span{display:block;font-size:12.5px;color:var(--mute);margin-bottom:5px;
 .wdh{font-size:12px;color:var(--mute);padding:10px 12px 4px;font-weight:650;background:var(--card);border-bottom:1px solid var(--line)}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 @media(max-width:360px){body{font-size:14px}.top h1{font-size:21px}.kpis{grid-template-columns:repeat(2,1fr)}.hgrid{grid-template-columns:minmax(0,1fr) repeat(7,28px);gap:3px}.hdot{width:28px;height:28px}.timer .tt{font-size:26px}.pill{max-width:38vw}}
-.tabs .brand,.tabs kbd,.tabs .side-extra{display:none}
+.tabs .brand,.tabs kbd,.tabs .side-extra,.side-open{display:none}
 /* class day/time rows: day + remove on one line, start/end below (phones); all on one line when there's room */
 .slot{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 36px;gap:6px;align-items:center;padding:8px;margin-top:6px;border:1px solid var(--line);border-radius:12px}
 .slot .s_day{grid-column:1/3}.slot .icon-btn{grid-column:3;grid-row:1;width:36px;height:40px}.slot .s_start{grid-column:1}.slot .s_end{grid-column:2}
@@ -240,16 +240,34 @@ label.f>span{display:block;font-size:12.5px;color:var(--mute);margin-bottom:5px;
 }
 /* iPad landscape, laptops, desktops: sidebar + two columns */
 @media(min-width:1024px){
-  body{padding-left:232px}
+  :root{--side:256px}
+  body{padding-left:var(--side);transition:padding-left .28s cubic-bezier(.2,.8,.2,1)}
+  body.side-off{--side:72px}
   .wrap{max-width:1120px;padding:0 32px}
   .sheet .wrap{padding:0 24px}
   .top .wrap{min-height:72px}.top h1{font-size:28px}
-  .tabs{top:0;right:auto;width:232px;border-top:0;border-right:1px solid var(--line);background:#060607;padding:calc(18px + var(--safeT)) 12px 20px max(12px,env(safe-area-inset-left,0px));display:flex;flex-direction:column}
-  .tabs .brand{display:flex;align-items:center;gap:10px;font-size:20px;font-weight:750;letter-spacing:-.02em;padding:6px 12px 22px}
+  /* floating sidebar: slides out of view when hidden (button or [ key) */
+  .tabs{top:calc(12px + var(--safeT));bottom:12px;left:max(12px,env(safe-area-inset-left,0px));right:auto;width:232px;border:1px solid var(--line);border-radius:20px;background:rgba(14,14,16,.82);box-shadow:0 18px 50px rgba(0,0,0,.45),0 2px 8px rgba(0,0,0,.3);padding:14px 10px 16px;display:flex;flex-direction:column;overflow:auto;transition:transform .28s cubic-bezier(.2,.8,.2,1),opacity .28s cubic-bezier(.2,.8,.2,1),visibility 0s}
+  body.side-off .tabs{transform:translateX(calc(-100% - 24px));opacity:0;visibility:hidden;pointer-events:none;transition:transform .28s cubic-bezier(.2,.8,.2,1),opacity .28s cubic-bezier(.2,.8,.2,1),visibility 0s .28s}
+  .tabs .brand{display:flex;align-items:center;gap:10px;font-size:20px;font-weight:750;letter-spacing:-.02em;padding:4px 4px 18px 12px}
+  .tabs .brand .grow{flex:1}
+  .tabs .side-tog,.side-open{display:grid;flex:none;min-height:0;padding:0;place-items:center;width:34px;height:34px;border-radius:10px;color:var(--mute)}
+  .tabs .side-tog:hover,.side-open:hover{color:var(--text);background:var(--card2)}
+  .tabs .side-tog svg,.side-open svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .side-open{position:fixed;z-index:30;top:calc(16px + var(--safeT));left:max(16px,env(safe-area-inset-left,0px));width:42px;height:42px;border-radius:14px;border:1px solid var(--line);background:rgba(14,14,16,.82);box-shadow:0 10px 30px rgba(0,0,0,.4);opacity:0;transform:translateX(-12px);visibility:hidden;pointer-events:none;transition:transform .28s cubic-bezier(.2,.8,.2,1),opacity .28s cubic-bezier(.2,.8,.2,1),visibility 0s .28s}
+  body.side-off .side-open{opacity:1;transform:none;visibility:visible;pointer-events:auto;transition:transform .28s cubic-bezier(.2,.8,.2,1) .08s,opacity .28s cubic-bezier(.2,.8,.2,1) .08s,visibility 0s}
+  /* active tab highlight slides between items */
+  .tabs .wrap{position:relative}
+  .tabs .wrap::before{content:'';position:absolute;left:0;right:0;top:0;height:46px;border-radius:12px;background:var(--card2);opacity:0;transition:transform .28s cubic-bezier(.2,.8,.2,1),opacity .2s}
   .tabs .brand img{border-radius:8px}
   .tabs .wrap{display:flex;flex-direction:column;gap:4px;padding:0;margin:0;max-width:none}
-  .tabs button{flex-direction:row;justify-content:flex-start;gap:12px;min-height:46px;padding:0 12px;border-radius:12px;font-size:15px;color:var(--mute)}
-  .tabs button[aria-selected=true]{background:var(--card2);color:var(--acc)}
+  .tabs button{position:relative;flex-direction:row;justify-content:flex-start;gap:12px;min-height:46px;padding:0 12px;border-radius:12px;font-size:15px;color:var(--mute);transition:color .28s}
+  .tabs button[aria-selected=true]{color:var(--acc)}
+  body[data-tab=today] .tabs .wrap::before{opacity:1}
+  body[data-tab=plan] .tabs .wrap::before{opacity:1;transform:translateY(50px)}
+  body[data-tab=study] .tabs .wrap::before{opacity:1;transform:translateY(100px)}
+  body[data-tab=close] .tabs .wrap::before{opacity:1;transform:translateY(150px)}
+  body[data-tab=habits] .tabs .wrap::before{opacity:1;transform:translateY(200px)}
   .tabs .tl-l{flex:1;text-align:left}
   .tabs .side-extra{display:flex;align-items:center;gap:12px;min-height:46px;padding:0 12px;border-radius:12px;font-size:15px;font-weight:600;color:var(--mute);margin-top:14px;border-top:1px solid var(--line);border-radius:0;padding-top:14px}
   body[data-tab=review] .side-extra{color:var(--acc)}
@@ -258,8 +276,8 @@ label.f>span{display:block;font-size:12.5px;color:var(--mute);margin-bottom:5px;
   #view{columns:2;column-gap:28px}
   #view>section{break-inside:avoid;margin:0;padding:12px 0 14px}
   #view>.seg,#view>.span{column-span:all;margin:12px 0 4px}
-  .fab{right:max(32px,calc((100vw - 232px - 1120px)/2 + 32px));bottom:32px}
-  .toast{bottom:40px;left:calc(50% + 116px)}
+  .fab{right:max(32px,calc((100vw - var(--side) - 1120px)/2 + 32px));bottom:32px;transition:right .28s cubic-bezier(.2,.8,.2,1)}
+  .toast{bottom:40px;left:calc(50% + var(--side)/2)}
 }
 @media(min-width:1024px) and (hover:none){.tabs kbd,.side-extra kbd{display:none}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
@@ -276,7 +294,8 @@ label.f>span{display:block;font-size:12.5px;color:var(--mute);margin-bottom:5px;
 
 <button class="fab" data-a="fab" aria-label="Add">+</button>
 
-<nav class="tabs" aria-label="Sections"><div class="brand" aria-hidden="true"><img src="favicon.svg" width="28" height="28" alt="">Flow</div><div class="wrap" role="tablist">
+<button class="side-open" data-a="sideToggle" aria-label="Show sidebar" title="Show sidebar ( [ )"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16"/></svg></button>
+<nav class="tabs" aria-label="Sections"><div class="brand"><img src="favicon.svg" width="28" height="28" alt=""><span class="grow" aria-hidden="true">Flow</span><button class="side-tog" data-a="sideToggle" aria-label="Hide sidebar" title="Hide sidebar ( [ )"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16"/></svg></button></div><div class="wrap" role="tablist">
   <button role="tab" data-a="tab" data-tab="today" aria-selected="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><span class="tl-l">Today</span><kbd aria-hidden="true">1</kbd></button>
   <button role="tab" data-a="tab" data-tab="plan" aria-selected="false"><svg viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="16.5" rx="3"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/></svg><span class="tl-l">Plan</span><kbd aria-hidden="true">2</kbd></button>
   <button role="tab" data-a="tab" data-tab="study" aria-selected="false"><svg viewBox="0 0 24 24"><path d="M2 8l10-5 10 5-10 5z"/><path d="M6 10.5V16c0 1.5 2.7 3 6 3s6-1.5 6-3v-5.5M22 8v6"/></svg><span class="tl-l">Study</span><kbd aria-hidden="true">3</kbd></button>
@@ -292,8 +311,9 @@ label.f>span{display:block;font-size:12.5px;color:var(--mute);margin-bottom:5px;
 
 <script>
 'use strict';
+try{if(localStorage.getItem('flow.sideOff'))document.body.classList.add('side-off')}catch(e){}
 /* ================================================================ basics */
-const APP_VERSION='2.9.0';
+const APP_VERSION='2.10.0';
 const APP_TITLE='Flow — Today, Plan, Study, Close & Habits';
 const $=(s,r=document)=>r.querySelector(s);
 const pad=n=>String(n).padStart(2,'0');
@@ -1054,6 +1074,7 @@ document.addEventListener('keydown',e=>{
   if(/^[1-5]$/.test(e.key)){e.preventDefault();A.tab({tab:tabs[+e.key-1]})}
   else if(e.key==='n'||e.key==='N'){e.preventDefault();A.fab()}
   else if(e.key==='r'||e.key==='R'){e.preventDefault();A.openReview()}
+  else if(e.key==='['){e.preventDefault();A.sideToggle()}
   else if(e.key==='/'){const q=$('#view form[data-form=quick] input');if(q){e.preventDefault();q.focus()}}
 });
 const segBtns=(name,opts,val)=>`<div class="seg" role="radiogroup" data-seg="${name}">${opts.map(o=>`<button type="button" role="radio" data-a="seg" data-v="${esc(o)}" class="${o===val?'on':''}" aria-checked="${o===val}">${esc(o)}</button>`).join('')}</div>`;
@@ -1372,6 +1393,8 @@ const A={
   // settings
   saveSettings:()=>{const n=val('s_name');const cd=$('#s_caldef').checked;if(n!==(META.prefs.name||'')||cd!==!!META.prefs.calDefault){META.prefs.name=n;META.prefs.calDefault=cd;savePrefs()}closeSheet();render()},
   // show / hide the app key; hides itself again after 30 s so it isn't left on screen
+  sideToggle:()=>{const off=document.body.classList.toggle('side-off');try{localStorage.setItem('flow.sideOff',off?'1':'')}catch(e){}
+    const b=off?$('.side-open'):$('.side-tog');if(b&&document.activeElement&&document.activeElement.closest('.tabs,.side-open'))b.focus()},
   toggleKey:(d,el)=>{const i=$('#s_key');if(!i)return;const show=i.type==='password';i.type=show?'text':'password';el.setAttribute('aria-pressed',show);el.setAttribute('aria-label',show?'Hide app key':'Show app key');el.innerHTML=show?EYE_OFF:EYE;
     clearTimeout(i._hide);if(show)i._hide=setTimeout(()=>{if(i.isConnected&&i.type==='text')A.toggleKey({},el)},30000)},
   saveConn:async()=>{const url=val('s_url'),key=val('s_key');
