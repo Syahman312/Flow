@@ -215,7 +215,7 @@ label.f>span{display:block;font-size:12.5px;color:var(--mute);margin-bottom:5px;
 .jy b{font-size:14px}.jy span{font-size:11px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 .jy.passed,.jy.exempt{background:color-mix(in srgb,var(--habit) 16%,var(--card2));border-color:color-mix(in srgb,var(--habit) 45%,transparent)}.jy.passed b,.jy.exempt b{color:var(--habit)}
 .jy.failed{border-color:color-mix(in srgb,var(--bad) 55%,transparent)}.jy.booked{border-color:color-mix(in srgb,var(--study) 60%,transparent)}.jy.none{opacity:.6}
-.row.ci{cursor:default;align-items:flex-start}.ci-btns{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.row.ci.logged{align-items:center}.row.ci{cursor:default;align-items:flex-start}.ci-btns{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .row.more{justify-content:center;width:100%;color:var(--acc);font-weight:600;font-size:13.5px}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 @media(max-width:360px){body{font-size:14px}.top h1{font-size:21px}.kpis{grid-template-columns:repeat(2,1fr)}.hgrid{grid-template-columns:minmax(0,1fr) repeat(7,28px);gap:3px}.hdot{width:28px;height:28px}.timer .tt{font-size:26px}.pill{max-width:38vw}}
@@ -340,7 +340,7 @@ label.f>span{display:block;font-size:12.5px;color:var(--mute);margin-bottom:5px;
 'use strict';
 try{if(localStorage.getItem('flow.sideOff'))document.body.classList.add('side-off')}catch(e){}
 /* ================================================================ basics */
-const APP_VERSION='2.14.0';
+const APP_VERSION='2.15.0';
 const APP_TITLE='Flow — Today, Plan, Study, Close & Habits';
 const $=(s,r=document)=>r.querySelector(s);
 const pad=n=>String(n).padStart(2,'0');
@@ -701,22 +701,30 @@ const clsLegacySid=(c,d)=>`cls_${c.id}_${d}`; // attendance logged by v2.6
 const live=id=>{const r=DB.sessions[id];return!!(r&&!r.deleted)};
 const attended=(c,d)=>live(clsSid(c,d))||(live(clsLegacySid(c,d))&&(classesOn(d).find(x=>x.id===c.id)||{}).start===c.start);
 const clsStarted=(c,d)=>{const t=todayS();return d<t||(d===t&&new Date().getHours()*60+new Date().getMinutes()>=tToMin(c.start))};
+const clsLog=(c,d)=>{for(const id of[clsSid(c,d),clsLegacySid(c,d)]){const r=DB.sessions[id];if(r&&!r.deleted)return r}return null};
+const clsAct=(c,d)=>(META.prefs.clsTimes||{})[clsSid(c,d)]||null; // actual arrive/leave once adjusted
+function setClsAct(c,d,st,en){const m=Object.assign({},META.prefs.clsTimes||{}),cut=ymd(addDays(new Date(),-90)),k=clsSid(c,d);
+  for(const x in m)if((x.match(/_(\d{4}-\d{2}-\d{2})_\d{4}$/)||[])[1]<cut)delete m[x];
+  if(st&&(st!==c.start||en!==c.end))m[k]={s:st,e:en};else delete m[k];META.prefs.clsTimes=m;savePrefs()}
 function setAttended(c,d,on,extraNote,mins){
-  if(!on){[clsSid(c,d),clsLegacySid(c,d)].forEach(id=>{if(live(id))remove('sessions',id,{silent:true})});return}
+  if(!on){if(clsAct(c,d))setClsAct(c,d);[clsSid(c,d),clsLegacySid(c,d)].forEach(id=>{if(live(id))remove('sessions',id,{silent:true})});return}
   if(attended(c,d))return;const p=c.paper&&paperOf(c.paper),m=mins||clsMins(c);
   put('sessions',{id:clsSid(c,d),title:`${p?p.code:c.title} · class · ${m} min`,paper:c.paper||'',topic:'',date:d,mins:m,kind:'Class',note:c.title+(extraNote?' '+extraNote:''),deleted:false},{silent:true})}
 const isUrl=v=>/^https?:\/\//i.test(v||'');
 const clsWhere=c=>c.where?(isUrl(c.where)?'online link':c.where):'';
-function classRow(c,d,opt={}){const att=d&&attended(c,d),p=c.paper&&paperOf(c.paper);
-  return `<div class="row cls ${att?'att':''}" data-a="editClass" data-id="${esc(c.id)}">${opt.time!==false?`<div class="time">${fmtTime(c.start)}</div><div class="bar-l" style="background:var(--study)"></div>`:''}<div class="grow"><div class="t-title">🎓 ${esc(c.title)}</div><div class="meta">${opt.time===false?`<span>${fmtTime(c.start)}–${fmtTime(c.end)}</span>`:`<span>until ${fmtTime(c.end)}</span>`}${p?`<span class="tag ACCA">${esc(p.code)}</span>`:''}<span>${esc(c.mode||'In person')}${clsWhere(c)?' · '+esc(clsWhere(c)):''}</span>${c.tutor?`<span>${esc(c.tutor)}</span>`:''}${c.to&&c.to<todayS()?'<span class="tag">ended</span>':''}${att?`<span class="tag good">attended · ${hrs(clsMins(c))} logged</span>`:''}</div></div>
-    ${isUrl(c.where)&&c.mode==='Online'?`<a class="btn sm" data-a="ext" href="${esc(c.where)}" target="_blank" rel="noopener noreferrer">Join</a>`:''}${d&&clsStarted(c,d)?`<button class="check-wrap" data-a="attend" data-id="${esc(c.id)}" data-date="${d}" data-start="${esc(c.start)}" aria-pressed="${att}" aria-label="${att?'Undo attended':'Mark attended'}: ${esc(c.title)}"><span class="check">${CHECK}</span></button>`:''}</div>`}
+function classRow(c0,d,opt={}){const att=d&&attended(c0,d),p=c0.paper&&paperOf(c0.paper),ac=att&&clsAct(c0,d),lg=att&&clsLog(c0,d),c=ac?Object.assign({},c0,{start:ac.s,end:ac.e}):c0;
+  return `<div class="row cls ${att?'att':''}" data-a="editClass" data-id="${esc(c.id)}">${opt.time!==false?`<div class="time">${fmtTime(c.start)}</div><div class="bar-l" style="background:var(--study)"></div>`:''}<div class="grow"><div class="t-title">🎓 ${esc(c.title)}</div><div class="meta">${opt.time===false?`<span>${fmtTime(c.start)}–${fmtTime(c.end)}</span>`:`<span>until ${fmtTime(c.end)}</span>`}${p?`<span class="tag ACCA">${esc(p.code)}</span>`:''}<span>${esc(c.mode||'In person')}${clsWhere(c)?' · '+esc(clsWhere(c)):''}</span>${c.tutor?`<span>${esc(c.tutor)}</span>`:''}${c.to&&c.to<todayS()?'<span class="tag">ended</span>':''}${att?`<button class="tag good" data-a="ciEdit" data-id="${esc(c0.id)}" data-date="${d}" data-start="${esc(c0.start)}" aria-label="Adjust times for ${esc(c0.title)}">attended · ${hrs(lg?+lg.mins:clsMins(c))} logged${ac?` · was ${fmtTime(c0.start)}`:''} ✎</button>`:''}</div></div>
+    ${isUrl(c.where)&&c.mode==='Online'?`<a class="btn sm" data-a="ext" href="${esc(c.where)}" target="_blank" rel="noopener noreferrer">Join</a>`:''}${d&&clsStarted(c0,d)?`<button class="check-wrap" data-a="attend" data-id="${esc(c0.id)}" data-date="${d}" data-start="${esc(c0.start)}" aria-pressed="${att}" aria-label="${att?'Undo attended':'Mark attended'}: ${esc(c0.title)}"><span class="check">${CHECK}</span></button>`:''}</div>`}
 /* ---------- class check-in: once a class starts, Today asks you to log it (today + yesterday) */
 const clsSkipped=(c,d)=>!!(META.prefs.clsSkip||{})[clsSid(c,d)];
 function dueClasses(){const n=new Date(),nm=n.getHours()*60+n.getMinutes(),t=todayS(),out=[];
-  for(const d of[ymd(addDays(n,-1)),t])classesOn(d).forEach(c=>{if(attended(c,d)||clsSkipped(c,d)||(d===t&&nm<tToMin(c.start)))return;
+  for(const d of[ymd(addDays(n,-1)),t])classesOn(d).forEach(c=>{if(d===t&&attended(c,d)){out.push({c,d,done:clsLog(c,d)});return}
+    if(attended(c,d)||clsSkipped(c,d)||(d===t&&nm<tToMin(c.start)))return;
     out.push({c,d,now:d===t&&nm<tToMin(c.end)})});return out}
 function checkInCard(){const due=dueClasses();if(!due.length)return'';
-  return `<section aria-labelledby="h-ci"><h2 id="h-ci">🎓 Class check-in</h2><div class="list">${due.map(({c,d,now})=>{const p=c.paper&&paperOf(c.paper),a=`data-id="${esc(c.id)}" data-date="${d}" data-start="${esc(c.start)}"`;
+  return `<section aria-labelledby="h-ci"><h2 id="h-ci">🎓 Class check-in</h2><div class="list">${due.map(({c,d,now,done})=>{const p=c.paper&&paperOf(c.paper),a=`data-id="${esc(c.id)}" data-date="${d}" data-start="${esc(c.start)}"`;
+    if(done){const ac=clsAct(c,d)||{s:c.start,e:c.end};return `<div class="row ci logged"><div class="grow"><div class="t-title">${esc(c.title)}${p?` <span class="tag ACCA">${esc(p.code)}</span>`:''}</div>
+      <div class="meta"><span class="tag good">✓ Logged</span><span>${fmtTime(ac.s)}–${fmtTime(ac.e)} · ${hrs(+done.mins||0)}</span></div></div><button class="btn sm" data-a="ciEdit" ${a}>✎ Adjust</button></div>`}
     return `<div class="row ci"><div class="grow"><div class="t-title">${esc(c.title)}${p?` <span class="tag ACCA">${esc(p.code)}</span>`:''}</div>
       <div class="meta"><span>${now?`On now · until ${fmtTime(c.end)}`:`${d===todayS()?'Today':'Yesterday'} · ${fmtTime(c.start)}–${fmtTime(c.end)}`}</span></div>
       <div class="ci-btns"><button class="btn sm pri" data-a="ciLog" ${a}>✓ Log ${hrs(clsMins(c))}</button><button class="btn sm" data-a="ciEdit" ${a}>Other time</button><button class="btn sm" data-a="ciSkip" ${a}>Missed</button></div></div></div>`}).join('')}</div></section>`}
@@ -1644,16 +1652,23 @@ const A={
   ciSkip:d=>{const c=findCls(d);if(!c)return;const sk=Object.assign({},META.prefs.clsSkip||{}),cut=ymd(addDays(new Date(),-14));
     for(const k in sk)if((k.match(/_(\d{4}-\d{2}-\d{2})_\d{4}$/)||[])[1]<cut)delete sk[k];
     sk[clsSid(c,d.date)]=1;META.prefs.clsSkip=sk;savePrefs();render();toast('Marked as missed')},
-  ciEdit:d=>{const c=findCls(d);if(!c)return;const a=`data-id="${esc(c.id)}" data-date="${d.date}" data-start="${esc(c.start)}"`;
-    openSheet(`<h2 class="st" id="sheetTitle">Log ${esc(c.title)}</h2><p class="muted small" style="margin:0">${fmtDate(d.date)} · planned ${fmtTime(c.start)}–${fmtTime(c.end)}</p>
-    <div class="grid2"><label class="f"><span>Arrived</span><input id="ci_s" type="time" value="${esc(c.start)}"></label><label class="f"><span>Left</span><input id="ci_e" type="time" value="${esc(c.end)}"></label></div>
-    <label class="f"><span>What did you cover? (optional)</span><input id="ci_note" maxlength="200" placeholder="e.g. IFRS 16 leases"></label>
-    <div class="foot"><button class="btn pri" data-a="ciSave" ${a}>Log study time</button></div>`)},
+  ciEdit:d=>{const c=findCls(d);if(!c)return;const a=`data-id="${esc(c.id)}" data-date="${d.date}" data-start="${esc(c.start)}"`,lg=attended(c,d.date)&&clsLog(c,d.date),ac=clsAct(c,d.date)||{s:c.start,e:c.end};
+    const note=lg?String(lg.note||'').replace(c.title,'').trim():'';
+    openSheet(`<h2 class="st" id="sheetTitle">${lg?'Adjust':'Log'} ${esc(c.title)}</h2><p class="muted small" style="margin:0">${fmtDate(d.date)} · planned ${fmtTime(c.start)}–${fmtTime(c.end)}${lg?` · logged ${hrs(+lg.mins||0)}`:''}</p>
+    <div class="grid2"><label class="f"><span>${lg?'Class started / arrived':'Arrived'}</span><input id="ci_s" type="time" value="${esc(ac.s)}"></label><label class="f"><span>Left</span><input id="ci_e" type="time" value="${esc(ac.e)}"></label></div>
+    <p class="tiny muted" id="ci_len" style="margin:-4px 0 8px"></p>
+    <label class="f"><span>What did you cover? (optional)</span><input id="ci_note" maxlength="200" value="${esc(note)}" placeholder="e.g. IFRS 16 leases"></label>
+    <div class="foot">${lg?`<button class="btn bad" data-a="attend" ${a}>Undo log</button>`:''}<button class="btn pri" data-a="ciSave" ${a}>${lg?'Save times':'Log study time'}</button></div>`);
+    const upd=()=>{const s=val('ci_s'),e=val('ci_e'),m=s&&e?tToMin(e)-tToMin(s):0,el=$('#ci_len');if(el)el.textContent=m>0?`${hrs(m)} will be logged`:'Left must be after the start'};
+    ['ci_s','ci_e'].forEach(id=>{const el=$('#'+id);if(el)el.addEventListener('input',upd)});upd()},
   ciSave:d=>{const c=findCls(d);if(!c)return;const s=val('ci_s'),e=val('ci_e'),m=s&&e?tToMin(e)-tToMin(s):0;
     if(m<=0){toast('Left time must be after arrived time');return}
-    setAttended(c,d.date,true,val('ci_note'),m);closeSheet();buzz(8);render();const p=c.paper&&paperOf(c.paper);toast(`🎓 ${hrs(m)} class logged${p?' to '+p.code:''}`)},
+    const lg=attended(c,d.date)&&clsLog(c,d.date),p=c.paper&&paperOf(c.paper),note=val('ci_note');
+    if(lg){Object.assign(lg,{mins:m,title:`${p?p.code:c.title} · class · ${m} min`,note:c.title+(note?' '+note:'')});put('sessions',lg,{silent:true})}
+    else setAttended(c,d.date,true,note,m);
+    setClsAct(c,d.date,s,e);closeSheet();buzz(8);render();toast(lg?`Updated · ${fmtTime(s)}–${fmtTime(e)} · ${hrs(m)}`:`🎓 ${hrs(m)} class logged${p?' to '+p.code:''}`)},
   attend:d=>{const c=classesOn(d.date).find(x=>x.id===d.id&&x.start===d.start);if(!c)return;
-    if(attended(c,d.date)){setAttended(c,d.date,false);render();toast('Attendance removed');return}
+    if(attended(c,d.date)){setAttended(c,d.date,false);if($('#sheet').classList.contains('open'))closeSheet();render();toast('Attendance removed');return}
     setAttended(c,d.date,true);buzz(8);render();const p=c.paper&&paperOf(c.paper),m=clsMins(c);toast(`🎓 ${hrs(m)} class logged${p?' to '+p.code:''} · +${Math.round(m/2)} XP`)},
   pastPick:()=>{const cl=CLS();if(cl.length===1){UI.pastWeeks=12;pastSheet(cl[0].id);return}
     openSheet(`<h2 class="st" id="sheetTitle">Past classes</h2><p class="muted small">Pick a class to tick off the sessions you attended.</p><div class="list">${cl.map(c=>`<div class="row" data-a="pastOpen" data-id="${esc(c.id)}"><div class="grow"><div class="t-title">🎓 ${esc(c.title)}</div><div class="meta">${sortSlots(slotsOf(c)).map(s=>`${DOW[s.day]} ${fmtTime(s.start)}`).join(' · ')}</div></div><span class="muted">›</span></div>`).join('')}</div>`)},
